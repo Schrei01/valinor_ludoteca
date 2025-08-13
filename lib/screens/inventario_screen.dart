@@ -3,7 +3,7 @@ import 'package:valinor_ludoteca_desktop/models/products.dart';
 import '../db/database_helper.dart';
 
 class InventarioScreen extends StatefulWidget {
-  const InventarioScreen({Key? key}) : super(key: key);
+  const InventarioScreen({super.key});
 
   @override
   State<InventarioScreen> createState() => _InventarioScreenState();
@@ -72,19 +72,33 @@ class _InventarioScreenState extends State<InventarioScreen> {
           ),
           const SizedBox(height: 20),
 
-          Expanded( // Esto hace que la fila ocupe todo el alto disponible
+          Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 📦 FORMULARIO
                 SizedBox(
-                  width: 300, // Fijo para que no se estire
-                  child: ProductForm(
-                    nameController: _nameController,
-                    quantityController: _quantityController,
-                    priceController: _priceController,
-                    purchasePriceController: _purchasePriceController,
-                    onAddProduct: _addProduct,
+                  width: 300,
+                  child: FutureBuilder<List<Product>>(
+                    future: _productsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
+
+                      final existingProducts = snapshot.data ?? [];
+
+                      return ProductForm(
+                        nameController: _nameController,
+                        quantityController: _quantityController,
+                        priceController: _priceController,
+                        purchasePriceController: _purchasePriceController,
+                        onAddProduct: _addProduct,
+                        existingProducts: existingProducts, // 🔹 nuevo parámetro
+                      );
+                    },
                   ),
                 ),
 
@@ -125,6 +139,7 @@ class ProductForm extends StatelessWidget {
   final TextEditingController priceController;
   final TextEditingController purchasePriceController;
   final VoidCallback onAddProduct;
+  final List<Product> existingProducts; // 🔹 nuevo parámetro
 
   const ProductForm({
     super.key,
@@ -133,15 +148,44 @@ class ProductForm extends StatelessWidget {
     required this.priceController,
     required this.purchasePriceController,
     required this.onAddProduct,
+    required this.existingProducts, // 🔹 obligatorio
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        TextField(
-          controller: nameController,
-          decoration: const InputDecoration(labelText: 'Nombre'),
+        Autocomplete<Product>(
+          optionsBuilder: (TextEditingValue textEditingValue) {
+            if (textEditingValue.text.isEmpty) {
+              return const Iterable<Product>.empty();
+            }
+            return existingProducts.where((Product p) {
+              return p.name.toLowerCase().contains(
+                    textEditingValue.text.toLowerCase(),
+                  );
+            });
+          },
+          displayStringForOption: (Product p) => p.name,
+          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            // 🔹 Sincronizamos con tu controlador original
+            controller.text = nameController.text;
+            controller.addListener(() {
+              nameController.text = controller.text;
+            });
+            return TextField(
+              controller: controller,
+              focusNode: focusNode,
+              decoration: const InputDecoration(labelText: 'Nombre'),
+            );
+          },
+          onSelected: (Product selected) {
+            nameController.text = selected.name;
+            quantityController.text = selected.quantity.toString();
+            priceController.text = selected.price.toStringAsFixed(2);
+            purchasePriceController.text =
+                selected.purchasePrice.toStringAsFixed(2);
+          },
         ),
         TextField(
           controller: quantityController,
@@ -167,6 +211,7 @@ class ProductForm extends StatelessWidget {
     );
   }
 }
+
 
 class ProductList extends StatelessWidget {
   final Future<List<Product>> productsFuture;
