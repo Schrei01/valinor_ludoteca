@@ -64,92 +64,181 @@ class _InventarioScreenState extends State<InventarioScreen> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          const Text('Inventario', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-
-          // Form para agregar producto
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Nombre'),
+          const Center(
+            child: Text(
+              'Inventario',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
           ),
-          TextField(
-            controller: _quantityController,
-            decoration: const InputDecoration(labelText: 'Cantidad'),
-            keyboardType: TextInputType.number,
-          ),
-          TextField(
-            controller: _priceController,
-            decoration: const InputDecoration(labelText: 'Precio Venta'),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          TextField(
-            controller: _purchasePriceController,
-            decoration: const InputDecoration(labelText: 'Precio compra'),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-
-          ElevatedButton(
-            onPressed: _addProduct,
-            child: const Text('Agregar Producto'),
-          ),
-
           const SizedBox(height: 20),
 
-          // Lista de productos
-          Expanded(
-            child: FutureBuilder<List<Product>>(
-              future: _productsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No hay productos'));
-                }
+          Expanded( // Esto hace que la fila ocupe todo el alto disponible
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 📦 FORMULARIO
+                SizedBox(
+                  width: 300, // Fijo para que no se estire
+                  child: ProductForm(
+                    nameController: _nameController,
+                    quantityController: _quantityController,
+                    priceController: _priceController,
+                    purchasePriceController: _purchasePriceController,
+                    onAddProduct: _addProduct,
+                  ),
+                ),
 
-                final products = snapshot.data!;
+                const SizedBox(width: 20),
 
-                return ListView.builder(
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    final p = products[index];
-                    return ListTile(
-                      title: Text(p.name),
-                      subtitle: Text(
-                        'Cantidad: ${p.quantity}  |  Precio venta: \$${p.price.toStringAsFixed(2)}  |  Precio compra: \$${p.purchasePrice.toStringAsFixed(2)}',
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () async {
-                          // Confirmar antes de eliminar
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Confirmar eliminación'),
-                              content: Text('¿Eliminar "${p.name}" del inventario?'),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-                                TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar')),
-                              ],
-                            ),
-                          );
-
-                          if (confirm == true) {
-                            await DatabaseHelper.instance.deleteProduct(p.id!);
-                            setState(() {
-                              _loadProducts();
-                            });
-                          }
-                        },
-                      ),
-                    );
-
-                  },
-                );
-              },
+                // 📜 LISTA DE PRODUCTOS
+                Expanded(
+                  child: ProductList(
+                    productsFuture: _productsFuture,
+                    onDeleteConfirmed: _loadProducts,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+}
+
+class InventoryTitle extends StatelessWidget {
+  const InventoryTitle({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Text(
+      'Inventario',
+      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+    );
+  }
+}
+
+class ProductForm extends StatelessWidget {
+  final TextEditingController nameController;
+  final TextEditingController quantityController;
+  final TextEditingController priceController;
+  final TextEditingController purchasePriceController;
+  final VoidCallback onAddProduct;
+
+  const ProductForm({
+    super.key,
+    required this.nameController,
+    required this.quantityController,
+    required this.priceController,
+    required this.purchasePriceController,
+    required this.onAddProduct,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TextField(
+          controller: nameController,
+          decoration: const InputDecoration(labelText: 'Nombre'),
+        ),
+        TextField(
+          controller: quantityController,
+          decoration: const InputDecoration(labelText: 'Cantidad'),
+          keyboardType: TextInputType.number,
+        ),
+        TextField(
+          controller: priceController,
+          decoration: const InputDecoration(labelText: 'Precio Venta'),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        TextField(
+          controller: purchasePriceController,
+          decoration: const InputDecoration(labelText: 'Precio compra'),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        const SizedBox(height: 8),
+        ElevatedButton(
+          onPressed: onAddProduct,
+          child: const Text('Agregar Producto'),
+        ),
+      ],
+    );
+  }
+}
+
+class ProductList extends StatelessWidget {
+  final Future<List<Product>> productsFuture;
+  final VoidCallback onDeleteConfirmed;
+
+  const ProductList({
+    super.key,
+    required this.productsFuture,
+    required this.onDeleteConfirmed,
+  });
+
+
+  Future<bool?> _showDeleteDialog(BuildContext context, String productName) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar eliminación'),
+        content: Text('¿Eliminar "$productName" del inventario?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: FutureBuilder<List<Product>>(
+        future: productsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No hay productos'));
+          }
+
+          final products = snapshot.data!;
+          return ListView.builder(
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final p = products[index];
+              return ListTile(
+                title: Text(p.name),
+                subtitle: Text(
+                  'Cantidad: ${p.quantity}  |  '
+                  'Precio venta: \$${p.price.toStringAsFixed(2)}  |  '
+                  'Precio compra: \$${p.purchasePrice.toStringAsFixed(2)}',
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () async {
+                    final confirm = await _showDeleteDialog(context, p.name);
+                    if (confirm == true) {
+                      await DatabaseHelper.instance.deleteProduct(p.id!);
+                      onDeleteConfirmed(); // avisa para recargar
+                    }
+                  },
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

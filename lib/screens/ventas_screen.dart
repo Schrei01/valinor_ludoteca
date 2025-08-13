@@ -4,7 +4,7 @@ import 'package:valinor_ludoteca_desktop/models/saleline.dart';
 import '../db/database_helper.dart';
 
 class VentasScreen extends StatefulWidget {
-  const VentasScreen({Key? key}) : super(key: key);
+  const VentasScreen({super.key});
 
   @override
   State<VentasScreen> createState() => _VentasScreenState();
@@ -14,7 +14,7 @@ class _VentasScreenState extends State<VentasScreen> {
   List<Product> _products = [];
 
   bool _loading = true;
-  List<SaleLine> _saleLines = [];
+  final List<SaleLine> _saleLines = [];
 
 
   @override
@@ -87,6 +87,7 @@ class _VentasScreenState extends State<VentasScreen> {
       await DatabaseHelper.instance.insertSale(product.id!, quantity, now);
     }
 
+    // ignore: use_build_context_synchronously
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Ventas registradas correctamente')),
     );
@@ -101,113 +102,178 @@ class _VentasScreenState extends State<VentasScreen> {
 
     await _loadProducts();
   }
-
+  
 
   @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    Widget build(BuildContext context) {
+      if (_loading) {
+        return const Center(child: CircularProgressIndicator());
+      }
 
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ..._saleLines.asMap().entries.map((entry) {
-            int index = entry.key;
-            SaleLine line = entry.value;
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Lista de líneas de venta
+            ..._saleLines.asMap().entries.map((entry) {
+              int index = entry.key;
+              SaleLine line = entry.value;
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  // Cantidad
-                  Expanded(
-                    flex: 1,
-                    child: TextField(
-                      controller: line.quantityController,
-                      decoration: const InputDecoration(labelText: 'Cantidad'),
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) => setState(() {}), // recalcula el total
-                    ),
-                  ),
-
-                  const SizedBox(width: 16),
-
-                  // Producto
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButton<Product>(
-                      isExpanded: true,
-                      hint: const Text('Selecciona un producto'),
-                      value: line.product,
-                      items: _products.map((p) {
-                        return DropdownMenuItem(
-                          value: p,
-                          child: Text('${p.name} - \$${p.price.toStringAsFixed(0)}'),
-                        );
-                      }).toList(),
-                      onChanged: (p) {
-                        setState(() {
-                          line.product = p;
-                        });
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(width: 16),
-
-                  if (_saleLines.length > 1)
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle, color: Colors.red),
-                      onPressed: () {
+              return SaleLineWidget(
+                line: line,
+                products: _products,
+                onChanged: () => setState(() {}),
+                onRemove: _saleLines.length > 1
+                    ? () {
                         setState(() {
                           _saleLines.removeAt(index);
                         });
-                      },
-                    ),
-                ],
-              ),
-            );
-          }).toList(),
+                      }
+                    : null,
+              );
+            }),
 
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-          ElevatedButton.icon(
-            onPressed: () {
-              setState(() {
-                _saleLines.add(SaleLine());
-              });
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Agregar venta'),
-          ),
-
-          const SizedBox(height: 20),
-
-          // TOTAL
-          Text(
-            'Total: \$${_totalRegistro.toStringAsFixed(0)}',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-
-          const SizedBox(height: 20),
-
-          ElevatedButton(
-            onPressed: _registerSale,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+            // Botón agregar
+            AddSaleButton(
+              onPressed: () {
+                setState(() {
+                  _saleLines.add(SaleLine());
+                });
+              },
             ),
-            child: const Text(
-              'Registrar Venta',
-              style: TextStyle(fontSize: 18, color: Colors.white),
+
+            const SizedBox(height: 20),
+
+            // Total
+            TotalDisplay(total: _totalRegistro),
+
+            const SizedBox(height: 20),
+
+            // Botón registrar
+            RegisterSaleButton(onPressed: _registerSale),
+          ],
+        ),
+      );
+    }
+
+}
+
+class TotalDisplay extends StatelessWidget {
+  final double total;
+
+  const TotalDisplay({super.key, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      'Total: \$${total.toStringAsFixed(0)}',
+      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    );
+  }
+}
+
+class AddSaleButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const AddSaleButton({super.key, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.add),
+      label: const Text('Agregar venta'),
+    );
+  }
+}
+
+class RegisterSaleButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const RegisterSaleButton({super.key, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.green,
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+      ),
+      child: const Text(
+        'Registrar Venta',
+        style: TextStyle(fontSize: 18, color: Colors.white),
+      ),
+    );
+  }
+}
+
+class SaleLineWidget extends StatelessWidget {
+  final SaleLine line;
+  final List<Product> products;
+  final VoidCallback? onRemove;
+  final VoidCallback onChanged;
+
+  const SaleLineWidget({
+    super.key,
+    required this.line,
+    required this.products,
+    required this.onChanged,
+    this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          // Cantidad
+          Expanded(
+            flex: 1,
+            child: TextField(
+              controller: line.quantityController,
+              decoration: const InputDecoration(labelText: 'Cantidad'),
+              keyboardType: TextInputType.number,
+              onChanged: (_) => onChanged(),
             ),
           ),
+
+          const SizedBox(width: 16),
+
+          // Producto
+          Expanded(
+            flex: 2,
+            child: DropdownButton<Product>(
+              isExpanded: true,
+              hint: const Text('Selecciona un producto'),
+              value: line.product,
+              items: products.map((p) {
+                return DropdownMenuItem(
+                  value: p,
+                  child: Text('${p.name} - \$${p.price.toStringAsFixed(0)}'),
+                );
+              }).toList(),
+              onChanged: (p) {
+                line.product = p;
+                onChanged();
+              },
+            ),
+          ),
+
+          const SizedBox(width: 16),
+
+          if (onRemove != null)
+            IconButton(
+              icon: const Icon(Icons.remove_circle, color: Colors.red),
+              onPressed: onRemove,
+            ),
         ],
       ),
     );
   }
-
 }
+
