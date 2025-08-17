@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:valinor_ludoteca_desktop/providers/accounts_provider.dart';
 import 'package:valinor_ludoteca_desktop/screens/reportes_screen.dart';
-
 import 'screens/inventario_screen.dart';
 import 'screens/ventas_screen.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  // Inicializar la base de datos si usas SQLite
-  // await DatabaseHelper.instance.database;
-
-  runApp(const ValinorApp());
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AccountsProvider()),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Valinor Ludoteca',
+        theme: ThemeData(primarySwatch: Colors.blue),
+        home: const ValinorApp(),
+      ),
+    ),
+  );
 }
 
 class ValinorApp extends StatefulWidget {
