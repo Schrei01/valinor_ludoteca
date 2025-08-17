@@ -90,13 +90,15 @@ class _InventarioScreenState extends State<InventarioScreen> {
 
                       final existingProducts = snapshot.data ?? [];
 
-                      return ProductForm(
-                        nameController: _nameController,
-                        quantityController: _quantityController,
-                        priceController: _priceController,
-                        purchasePriceController: _purchasePriceController,
-                        onAddProduct: _addProduct,
-                        existingProducts: existingProducts, // 🔹 nuevo parámetro
+                      return SingleChildScrollView( // 🔹 Evita overflow y problemas de ParentData
+                        child: ProductForm(
+                          nameController: _nameController,
+                          quantityController: _quantityController,
+                          priceController: _priceController,
+                          purchasePriceController: _purchasePriceController,
+                          onAddProduct: _addProduct,
+                          existingProducts: existingProducts,
+                        ),
                       );
                     },
                   ),
@@ -181,7 +183,6 @@ class ProductForm extends StatelessWidget {
           },
           onSelected: (Product selected) {
             nameController.text = selected.name;
-            quantityController.text = selected.quantity.toString();
             priceController.text = selected.price.toStringAsFixed(2);
             purchasePriceController.text =
                 selected.purchasePrice.toStringAsFixed(2);

@@ -146,19 +146,27 @@ class _VentasScreenState extends State<VentasScreen> {
             ),
 
             const SizedBox(height: 20),
-
             // Total
-            TotalDisplay(total: _totalRegistro),
+            // Botón + Total en la misma fila
+            Row(
+              children: [
+                // Botón al lado izquierdo
+                RegisterSaleButton(onPressed: _registerSale),
 
+                const SizedBox(width: 16), // espacio entre botón y total
+
+                // Total a la derecha
+                Expanded(
+                  child: TotalDisplay(total: _totalRegistro),
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
-
             // Botón registrar
-            RegisterSaleButton(onPressed: _registerSale),
           ],
         ),
       );
     }
-
 }
 
 class TotalDisplay extends StatelessWidget {
@@ -200,7 +208,7 @@ class RegisterSaleButton extends StatelessWidget {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.purple,
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
       ),
       child: const Text(
@@ -246,23 +254,59 @@ class SaleLineWidget extends StatelessWidget {
 
           // Producto
           Expanded(
-            flex: 2,
-            child: DropdownButton<Product>(
-              isExpanded: true,
-              hint: const Text('Selecciona un producto'),
-              value: line.product,
-              items: products.map((p) {
-                return DropdownMenuItem(
-                  value: p,
-                  child: Text('${p.name} - \$${p.price.toStringAsFixed(0)}'),
-                );
-              }).toList(),
-              onChanged: (p) {
-                line.product = p;
-                onChanged();
-              },
-            ),
+          flex: 2,
+          child: Autocomplete<Product>(
+            optionsBuilder: (TextEditingValue value) {
+              if (value.text.isEmpty) {
+                return const Iterable<Product>.empty();
+              }
+              return products.where((p) =>
+                  p.name.toLowerCase().contains(value.text.toLowerCase()));
+            },
+            displayStringForOption: (p) => p.name,
+            initialValue: line.product != null
+                ? TextEditingValue(text: line.product!.name)
+                : const TextEditingValue(),
+            fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+              return TextField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: const InputDecoration(
+                  labelText: 'Selecciona un producto',
+                ),
+                onEditingComplete: onEditingComplete,
+              );
+            },
+            onSelected: (p) {
+              line.product = p;
+              // también podrías actualizar el precio automáticamente aquí
+              onChanged();
+            },
+            optionsViewBuilder: (context, onSelected, options) {
+              return Align(
+                alignment: Alignment.topLeft,
+                child: Material(
+                  elevation: 4,
+                  child: SizedBox(
+                    height: 200,
+                    child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      itemCount: options.length,
+                      itemBuilder: (context, index) {
+                        final Product option = options.elementAt(index);
+                        return ListTile(
+                          title: Text('${option.name} (Stock: ${option.quantity})'),
+                          subtitle: Text('\$${option.price.toStringAsFixed(0)}'),
+                          onTap: () => onSelected(option),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
+        ),
 
           const SizedBox(width: 16),
 
