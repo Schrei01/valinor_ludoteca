@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:valinor_ludoteca_desktop/models/products.dart';
+import 'package:valinor_ludoteca_desktop/widgets/product_form_widget.dart';
+import 'package:valinor_ludoteca_desktop/widgets/product_list_widget.dart';
 import '../db/database_helper.dart';
 
 class InventarioScreen extends StatefulWidget {
-  const InventarioScreen({Key? key}) : super(key: key);
+  const InventarioScreen({super.key});
 
   @override
   State<InventarioScreen> createState() => _InventarioScreenState();
@@ -27,25 +29,56 @@ class _InventarioScreenState extends State<InventarioScreen> {
     _productsFuture = DatabaseHelper.instance.getProducts();
   }
 
-  void _addProduct() async {
-    final name = _nameController.text.trim();
-    final quantity = int.tryParse(_quantityController.text.trim());
-    final price = double.tryParse(_priceController.text.trim());
-    final purchasePrice = double.tryParse(_purchasePriceController.text.trim());
+  Future<bool> _askPassword(BuildContext context) async {
+    final controller = TextEditingController();
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text("Acceso restringido"),
+              content: TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: "Ingresa la contraseña",
+                ),
+                obscureText: true,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text("Cancelar"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (controller.text == "1990") {
+                      Navigator.of(context).pop(true);
+                    } else {
+                      Navigator.of(context).pop(false);
+                    }
+                  },
+                  child: const Text("Aceptar"),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
 
-    if (name.isEmpty || quantity == null || price == null || purchasePrice == null) {
+  Future<void> _addProduct(Product newProduct) async {
+  // 🔹 Validar cantidad negativa antes de llamar a la DB
+  if (newProduct.quantity < 0) {
+    final allowed = await _askPassword(context);
+    if (!allowed) {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor completa todos los campos correctamente')),
+        const SnackBar(content: Text('Cantidad negativa no permitida')),
       );
-      return;
+      return; // no guardamos nada
     }
+  }
 
-    final newProduct = Product(
-      name: name,
-      quantity: quantity,
-      price: price,
-      purchasePrice: purchasePrice,
-    );
+  try {
     await DatabaseHelper.instance.insertOrUpdateProduct(newProduct);
 
     _nameController.clear();
@@ -56,7 +89,14 @@ class _InventarioScreenState extends State<InventarioScreen> {
     setState(() {
       _loadProducts();
     });
+  } catch (e) {
+    // ignore: use_build_context_synchronously
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e')),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -64,89 +104,54 @@ class _InventarioScreenState extends State<InventarioScreen> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          const Text('Inventario', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-
-          // Form para agregar producto
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Nombre'),
+          const Center(
+            child: Text(
+              'Inventario',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
           ),
-          TextField(
-            controller: _quantityController,
-            decoration: const InputDecoration(labelText: 'Cantidad'),
-            keyboardType: TextInputType.number,
-          ),
-          TextField(
-            controller: _priceController,
-            decoration: const InputDecoration(labelText: 'Precio Venta'),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          TextField(
-            controller: _purchasePriceController,
-            decoration: const InputDecoration(labelText: 'Precio compra'),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-
-          ElevatedButton(
-            onPressed: _addProduct,
-            child: const Text('Agregar Producto'),
-          ),
-
           const SizedBox(height: 20),
 
-          // Lista de productos
           Expanded(
-            child: FutureBuilder<List<Product>>(
-              future: _productsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No hay productos'));
-                }
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 📦 FORMULARIO
+                SizedBox(
+                  width: 300,
+                  child: FutureBuilder<List<Product>>(
+                    future: _productsFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
 
-                final products = snapshot.data!;
+                      final existingProducts = snapshot.data ?? [];
 
-                return ListView.builder(
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    final p = products[index];
-                    return ListTile(
-                      title: Text(p.name),
-                      subtitle: Text(
-                        'Cantidad: ${p.quantity}  |  Precio venta: \$${p.price.toStringAsFixed(2)}  |  Precio compra: \$${p.purchasePrice.toStringAsFixed(2)}',
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () async {
-                          // Confirmar antes de eliminar
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Confirmar eliminación'),
-                              content: Text('¿Eliminar "${p.name}" del inventario?'),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-                                TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar')),
-                              ],
-                            ),
-                          );
+                      return ProductForm(
+                        nameController: _nameController,
+                        quantityController: _quantityController,
+                        priceController: _priceController,
+                        purchasePriceController: _purchasePriceController,
+                        onAddProduct: _addProduct,
+                        existingProducts: existingProducts,
+                      );
+                    },
+                  ),
+                ),
 
-                          if (confirm == true) {
-                            await DatabaseHelper.instance.deleteProduct(p.id!);
-                            setState(() {
-                              _loadProducts();
-                            });
-                          }
-                        },
-                      ),
-                    );
+                const SizedBox(width: 20),
 
-                  },
-                );
-              },
+                // 📜 LISTA DE PRODUCTOS
+                Expanded(
+                  child: ProductList(
+                    productsFuture: _productsFuture,
+                    onDeleteConfirmed: _loadProducts,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -154,3 +159,5 @@ class _InventarioScreenState extends State<InventarioScreen> {
     );
   }
 }
+
+

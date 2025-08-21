@@ -14,9 +14,12 @@ class _ReportesScreenState extends State<ReportesScreen> {
   DateTime? _endDate;
   List<Map<String, dynamic>> _reportData = [];
   double _totalGeneral = 0;
+  double _totalGanancias = 0;
   bool _loading = false;
 
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
+  final NumberFormat _currencyFormat = NumberFormat("#,##0", "es_CO");
+
 
   Future<void> _selectDate(BuildContext context, bool isStart) async {
     final initialDate = isStart ? (_startDate ?? DateTime.now()) : (_endDate ?? DateTime.now());
@@ -63,8 +66,10 @@ class _ReportesScreenState extends State<ReportesScreen> {
     setState(() {
       _reportData = List<Map<String, dynamic>>.from(data['report']);
       _totalGeneral = data['totalGeneral'];
+      _totalGanancias = data['totalGanancias'];
       _loading = false;
     });
+
   }
 
   @override
@@ -125,7 +130,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                   return ListTile(
                     title: Text(item['name']),
                     subtitle: Text('Cantidad vendida: ${item['total_quantity']}'),
-                    trailing: Text('Total: \$${(item['total_sales'] as num).toStringAsFixed(2)}'),
+                    trailing: Text('Total: \$${_currencyFormat.format(item['total_sales'])}'),
                   );
                 },
               ),
@@ -133,8 +138,13 @@ class _ReportesScreenState extends State<ReportesScreen> {
             const SizedBox(height: 16),
 
             Text(
-              'Total general: \$${_totalGeneral.toStringAsFixed(2)}',
+              'Total general: \$${_currencyFormat.format(_totalGeneral)}',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 40),
+            Text(
+              'Total ganancias: \$${_currencyFormat.format(_totalGanancias)}',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
             ),
         ],
       ),

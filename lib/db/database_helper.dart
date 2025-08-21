@@ -80,30 +80,36 @@ class DatabaseHelper {
   }
 
     // Insertar producto
-  Future<int> insertOrUpdateProduct(Product product) async {
-    final db = await instance.database;
+  Future<int> insertOrUpdateProduct(Product product, {String? password}) async {
+  final db = await instance.database;
 
-    final existingProduct = await getProductByName(product.name);
+  final existingProduct = await getProductByName(product.name);
 
-    if (existingProduct != null) {
-      // Sumar cantidades
-      final newQuantity = existingProduct.quantity + product.quantity;
+  if (existingProduct != null) {
+    // Sumar cantidades
+    final newQuantity = existingProduct.quantity + product.quantity;
 
-      return await db.update(
-        'products',
-        {
-          'quantity': newQuantity,
-          'price': product.price,
-          'purchasePrice': product.purchasePrice,
-        },
-        where: 'id = ?',
-        whereArgs: [existingProduct.id],
-      );
-    } else {
-      // Insertar nuevo producto
-      return await db.insert('products', product.toMap());
+    if (newQuantity < 0) {
+      // Si el resultado es negativo también protegemos
+      throw Exception("El stock no puede quedar en negativo.");
     }
+
+    return await db.update(
+      'products',
+      {
+        'quantity': newQuantity,
+        'price': product.price,
+        'purchasePrice': product.purchasePrice,
+      },
+      where: 'id = ?',
+      whereArgs: [existingProduct.id],
+    );
+  } else {
+    // Insertar nuevo producto
+    return await db.insert('products', product.toMap());
   }
+}
+
 
 
   // Obtener lista de productos
@@ -154,33 +160,48 @@ class DatabaseHelper {
   }
 
   Future<Map<String, dynamic>> getSalesReport(DateTime start, DateTime end) async {
-      final db = await instance.database;
+    final db = await instance.database;
 
-      final reportData = await db.rawQuery('''
-        SELECT p.name, SUM(s.quantity) AS total_quantity,
-              SUM(s.quantity * p.price) AS total_sales
-        FROM sales s
-        JOIN products p ON s.productId = p.id
-        WHERE s.date BETWEEN ? AND ?
-        GROUP BY p.name
-      ''', [start.toIso8601String(), end.toIso8601String()]);
+    final reportData = await db.rawQuery('''
+      SELECT 
+        p.name, 
+        SUM(s.quantity) AS total_quantity,
+        SUM(s.quantity * p.price) AS total_sales,
+        SUM(s.quantity * p.purchasePrice) AS total_cost
+      FROM sales s
+      JOIN products p ON s.productId = p.id
+      WHERE s.date BETWEEN ? AND ?
+      GROUP BY p.name
+    ''', [start.toIso8601String(), end.toIso8601String()]);
 
-      final totalGeneralQuery = await db.rawQuery('''
-        SELECT SUM(s.quantity * p.price) AS totalGeneral
-        FROM sales s
-        JOIN products p ON s.productId = p.id
-        WHERE s.date BETWEEN ? AND ?
-      ''', [start.toIso8601String(), end.toIso8601String()]);
+    final totalGeneralQuery = await db.rawQuery('''
+      SELECT 
+        SUM(s.quantity * p.price) AS totalGeneral,
+        SUM(s.quantity * p.purchasePrice) AS totalCost
+      FROM sales s
+      JOIN products p ON s.productId = p.id
+      WHERE s.date BETWEEN ? AND ?
+    ''', [start.toIso8601String(), end.toIso8601String()]);
 
-      // Casting seguro a double
-      double totalGeneral = 0;
-      if (totalGeneralQuery.isNotEmpty && totalGeneralQuery.first['totalGeneral'] != null) {
+    double totalGeneral = 0;
+    double totalCost = 0;
+
+    if (totalGeneralQuery.isNotEmpty) {
+      if (totalGeneralQuery.first['totalGeneral'] != null) {
         totalGeneral = (totalGeneralQuery.first['totalGeneral'] as num).toDouble();
       }
-
-      return {
-        'report': reportData,
-        'totalGeneral': totalGeneral
-      };
+      if (totalGeneralQuery.first['totalCost'] != null) {
+        totalCost = (totalGeneralQuery.first['totalCost'] as num).toDouble();
+      }
     }
+
+    final totalGanancias = totalGeneral - totalCost;
+
+    return {
+      'report': reportData,
+      'totalGeneral': totalGeneral,
+      'totalGanancias': totalGanancias,
+    };
+  }
+
   }
