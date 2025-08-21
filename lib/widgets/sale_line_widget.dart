@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:valinor_ludoteca_desktop/models/products.dart';
 import 'package:valinor_ludoteca_desktop/models/saleline.dart';
 
@@ -7,8 +8,10 @@ class SaleLineWidget extends StatelessWidget {
   final List<Product> products;
   final VoidCallback? onRemove;
   final VoidCallback onChanged;
+  final NumberFormat _currencyFormat = NumberFormat("#,##0", "es_CO");
 
-  const SaleLineWidget({
+
+  SaleLineWidget({
     super.key,
     required this.line,
     required this.products,
@@ -79,7 +82,9 @@ class SaleLineWidget extends StatelessWidget {
                         final Product option = options.elementAt(index);
                         return ListTile(
                           title: Text('${option.name} (Stock: ${option.quantity})'),
-                          subtitle: Text('\$${option.price.toStringAsFixed(0)}'),
+                          subtitle: Text(
+                            'Precio: \$${_currencyFormat.format(option.price)}',
+                          ),
                           onTap: () => onSelected(option),
                         );
                       },

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:valinor_ludoteca_desktop/models/products.dart';
+import 'package:valinor_ludoteca_desktop/widgets/product_form_widget.dart';
+import 'package:valinor_ludoteca_desktop/widgets/product_list_widget.dart';
 import '../db/database_helper.dart';
 
 class InventarioScreen extends StatefulWidget {
@@ -27,25 +29,56 @@ class _InventarioScreenState extends State<InventarioScreen> {
     _productsFuture = DatabaseHelper.instance.getProducts();
   }
 
-  void _addProduct() async {
-    final name = _nameController.text.trim();
-    final quantity = int.tryParse(_quantityController.text.trim());
-    final price = double.tryParse(_priceController.text.trim());
-    final purchasePrice = double.tryParse(_purchasePriceController.text.trim());
+  Future<bool> _askPassword(BuildContext context) async {
+    final controller = TextEditingController();
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text("Acceso restringido"),
+              content: TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: "Ingresa la contraseña",
+                ),
+                obscureText: true,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text("Cancelar"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (controller.text == "1990") {
+                      Navigator.of(context).pop(true);
+                    } else {
+                      Navigator.of(context).pop(false);
+                    }
+                  },
+                  child: const Text("Aceptar"),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
 
-    if (name.isEmpty || quantity == null || price == null || purchasePrice == null) {
+  Future<void> _addProduct(Product newProduct) async {
+  // 🔹 Validar cantidad negativa antes de llamar a la DB
+  if (newProduct.quantity < 0) {
+    final allowed = await _askPassword(context);
+    if (!allowed) {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor completa todos los campos correctamente')),
+        const SnackBar(content: Text('Cantidad negativa no permitida')),
       );
-      return;
+      return; // no guardamos nada
     }
+  }
 
-    final newProduct = Product(
-      name: name,
-      quantity: quantity,
-      price: price,
-      purchasePrice: purchasePrice,
-    );
+  try {
     await DatabaseHelper.instance.insertOrUpdateProduct(newProduct);
 
     _nameController.clear();
@@ -56,7 +89,14 @@ class _InventarioScreenState extends State<InventarioScreen> {
     setState(() {
       _loadProducts();
     });
+  } catch (e) {
+    // ignore: use_build_context_synchronously
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e')),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -90,15 +130,13 @@ class _InventarioScreenState extends State<InventarioScreen> {
 
                       final existingProducts = snapshot.data ?? [];
 
-                      return SingleChildScrollView( // 🔹 Evita overflow y problemas de ParentData
-                        child: ProductForm(
-                          nameController: _nameController,
-                          quantityController: _quantityController,
-                          priceController: _priceController,
-                          purchasePriceController: _purchasePriceController,
-                          onAddProduct: _addProduct,
-                          existingProducts: existingProducts,
-                        ),
+                      return ProductForm(
+                        nameController: _nameController,
+                        quantityController: _quantityController,
+                        priceController: _priceController,
+                        purchasePriceController: _purchasePriceController,
+                        onAddProduct: _addProduct,
+                        existingProducts: existingProducts,
                       );
                     },
                   ),
@@ -120,172 +158,6 @@ class _InventarioScreenState extends State<InventarioScreen> {
       ),
     );
   }
-
-}
-
-class InventoryTitle extends StatelessWidget {
-  const InventoryTitle({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Text(
-      'Inventario',
-      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-    );
-  }
-}
-
-class ProductForm extends StatelessWidget {
-  final TextEditingController nameController;
-  final TextEditingController quantityController;
-  final TextEditingController priceController;
-  final TextEditingController purchasePriceController;
-  final VoidCallback onAddProduct;
-  final List<Product> existingProducts; // 🔹 nuevo parámetro
-
-  const ProductForm({
-    super.key,
-    required this.nameController,
-    required this.quantityController,
-    required this.priceController,
-    required this.purchasePriceController,
-    required this.onAddProduct,
-    required this.existingProducts, // 🔹 obligatorio
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Autocomplete<Product>(
-          optionsBuilder: (TextEditingValue textEditingValue) {
-            if (textEditingValue.text.isEmpty) {
-              return const Iterable<Product>.empty();
-            }
-            return existingProducts.where((Product p) {
-              return p.name.toLowerCase().contains(
-                    textEditingValue.text.toLowerCase(),
-                  );
-            });
-          },
-          displayStringForOption: (Product p) => p.name,
-          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-            // 🔹 Sincronizamos con tu controlador original
-            controller.text = nameController.text;
-            controller.addListener(() {
-              nameController.text = controller.text;
-            });
-            return TextField(
-              controller: controller,
-              focusNode: focusNode,
-              decoration: const InputDecoration(labelText: 'Nombre'),
-            );
-          },
-          onSelected: (Product selected) {
-            nameController.text = selected.name;
-            priceController.text = selected.price.toStringAsFixed(2);
-            purchasePriceController.text =
-                selected.purchasePrice.toStringAsFixed(2);
-          },
-        ),
-        TextField(
-          controller: quantityController,
-          decoration: const InputDecoration(labelText: 'Cantidad'),
-          keyboardType: TextInputType.number,
-        ),
-        TextField(
-          controller: priceController,
-          decoration: const InputDecoration(labelText: 'Precio Venta'),
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        ),
-        TextField(
-          controller: purchasePriceController,
-          decoration: const InputDecoration(labelText: 'Precio compra'),
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        ),
-        const SizedBox(height: 8),
-        ElevatedButton(
-          onPressed: onAddProduct,
-          child: const Text('Agregar Producto'),
-        ),
-      ],
-    );
-  }
 }
 
 
-class ProductList extends StatelessWidget {
-  final Future<List<Product>> productsFuture;
-  final VoidCallback onDeleteConfirmed;
-
-  const ProductList({
-    super.key,
-    required this.productsFuture,
-    required this.onDeleteConfirmed,
-  });
-
-
-  Future<bool?> _showDeleteDialog(BuildContext context, String productName) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: Text('¿Eliminar "$productName" del inventario?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: FutureBuilder<List<Product>>(
-        future: productsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No hay productos'));
-          }
-
-          final products = snapshot.data!;
-          return ListView.builder(
-            itemCount: products.length,
-            itemBuilder: (context, index) {
-              final p = products[index];
-              return ListTile(
-                title: Text(p.name),
-                subtitle: Text(
-                  'Cantidad: ${p.quantity}  |  '
-                  'Precio venta: \$${p.price.toStringAsFixed(2)}  |  '
-                  'Precio compra: \$${p.purchasePrice.toStringAsFixed(2)}',
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () async {
-                    final confirm = await _showDeleteDialog(context, p.name);
-                    if (confirm == true) {
-                      await DatabaseHelper.instance.deleteProduct(p.id!);
-                      onDeleteConfirmed(); // avisa para recargar
-                    }
-                  },
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}

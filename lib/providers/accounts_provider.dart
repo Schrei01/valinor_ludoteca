@@ -14,7 +14,7 @@ class AccountsProvider extends ChangeNotifier {
 
   /// Agregar nueva cuenta
   void addAccount() {
-    _accounts.add(Account());
+    _accounts.add(Account(name: "Cuenta ${_accounts.length + 1}"));
     notifyListeners();
   }
 

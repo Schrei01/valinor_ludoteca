@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:valinor_ludoteca_desktop/models/products.dart';
 import 'package:valinor_ludoteca_desktop/models/saleline.dart';
@@ -20,6 +21,8 @@ class _VentasScreenState extends State<VentasScreen> {
   bool _loading = true;
   final List<SaleLine> _saleLines = [];
 
+  final NumberFormat _currencyFormat = NumberFormat("#,##0", "es_CO");
+
 
   @override
   void initState() {
@@ -36,26 +39,6 @@ class _VentasScreenState extends State<VentasScreen> {
       _loading = false;
       
     });
-  }
-
-  double get _totalRegistro {
-    double total = 0;
-    for (var line in _saleLines) {
-      final quantity = int.tryParse(line.quantityController.text) ?? 0;
-      final price = line.product?.price ?? 0;
-      total += quantity * price;
-    }
-    return total;
-  }
-
-  double _calculateTotal(List<SaleLine> saleLines) {
-    double total = 0;
-    for (final line in saleLines) {
-      final q = int.tryParse(line.quantityController.text.trim()) ?? 0;
-      final p = line.product?.price ?? 0.0;
-      total += q * p;
-    }
-    return total;
   }
 
   void _registerSaleForAccount(Account account) async {
@@ -136,6 +119,10 @@ class _VentasScreenState extends State<VentasScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              const Text('Ventas', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+
+              const SizedBox(height: 16),
+
               // Render de cada cuenta
               ...accounts.asMap().entries.map((entry) {
                 final index = entry.key;
@@ -150,11 +137,21 @@ class _VentasScreenState extends State<VentasScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text("Cuenta ${index + 1}",
+                            Expanded(
+                              child: TextField(
+                                controller: account.nameController,
+                                decoration: const InputDecoration(
+                                  hintText: "Nombre de la cuenta",
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                ),
                                 style: const TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold)),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () {
@@ -234,13 +231,14 @@ class _VentasScreenState extends State<VentasScreen> {
 
 class TotalDisplay extends StatelessWidget {
   final double total;
+  final NumberFormat _currencyFormat = NumberFormat("#,##0", "es_CO");
 
-  const TotalDisplay({super.key, required this.total});
+  TotalDisplay({super.key, required this.total});
 
   @override
   Widget build(BuildContext context) {
     return Text(
-      'Total: \$${total.toStringAsFixed(0)}',
+      'Total: \$${_currencyFormat.format(total)}',
       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
     );
   }
@@ -285,14 +283,12 @@ class RegisterSaleButton extends StatelessWidget {
 
 
 class Account {
+  final TextEditingController nameController;
   List<SaleLine> saleLines;
   double total;
 
-  Account({
-    List<SaleLine>? saleLines,
-    this.total = 0,
-  }) : saleLines = saleLines ?? [SaleLine()];
+  Account({String? name})
+      : nameController = TextEditingController(text: name ?? "Cuenta"),
+        saleLines = [SaleLine()],
+        total = 0.0;
 }
-
-
-
