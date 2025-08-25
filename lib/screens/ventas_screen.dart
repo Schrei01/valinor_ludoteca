@@ -21,8 +21,6 @@ class _VentasScreenState extends State<VentasScreen> {
   bool _loading = true;
   final List<SaleLine> _saleLines = [];
 
-  final NumberFormat _currencyFormat = NumberFormat("#,##0", "es_CO");
-
 
   @override
   void initState() {
@@ -141,6 +139,7 @@ class _VentasScreenState extends State<VentasScreen> {
                             Expanded(
                               child: TextField(
                                 controller: account.nameController,
+                                focusNode: account.nameFocusNode,
                                 decoration: const InputDecoration(
                                   hintText: "Nombre de la cuenta",
                                   border: InputBorder.none,
@@ -204,8 +203,9 @@ class _VentasScreenState extends State<VentasScreen> {
                             ),
                             const SizedBox(width: 16),
                             RegisterSaleButton(
-                              onPressed: () =>
-                                  _registerSaleForAccount(account),
+                              onPressed: () {
+                                  _registerSaleForAccount(account);
+                                  accountsProvider.removeAccount(index);}
                             ),
                           ],
                         ),
@@ -284,11 +284,29 @@ class RegisterSaleButton extends StatelessWidget {
 
 class Account {
   final TextEditingController nameController;
+  final FocusNode nameFocusNode;
   List<SaleLine> saleLines;
   double total;
 
   Account({String? name})
       : nameController = TextEditingController(text: name ?? "Cuenta"),
+        nameFocusNode = FocusNode(),
         saleLines = [SaleLine()],
-        total = 0.0;
+        total = 0.0 {
+    // 🔹 Selecciona todo el texto automáticamente al recibir el foco
+    nameFocusNode.addListener(() {
+      if (nameFocusNode.hasFocus) {
+        nameController.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: nameController.text.length,
+        );
+      }
+    });
+  }
+
+  void dispose() {
+    nameController.dispose();
+    nameFocusNode.dispose();
+  }
 }
+

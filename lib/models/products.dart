@@ -2,8 +2,9 @@ class Product {
   final int? id;
   final String name;
   final int quantity;
-  final double price; // precio venta
-  final double purchasePrice; // precio compra
+  final double price;
+  final double purchasePrice;
+  final String? lote;
 
   Product({
     this.id,
@@ -11,17 +12,25 @@ class Product {
     required this.quantity,
     required this.price,
     required this.purchasePrice,
+    required this.lote,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
+  Map<String, dynamic> toMap({bool includeId = false}) {
+    final map = {
       'name': name,
       'quantity': quantity,
       'price': price,
       'purchasePrice': purchasePrice,
+      'lote': lote,
     };
+
+    if (includeId && id != null) {
+      map['id'] = id;
+    }
+
+    return map;
   }
+
 
   factory Product.fromMap(Map<String, dynamic> map) {
     return Product(
@@ -30,6 +39,7 @@ class Product {
       quantity: map['quantity'],
       price: (map['price'] ?? 0).toDouble(),
       purchasePrice: (map['purchasePrice'] ?? 0).toDouble(),
+      lote: map['lote'],
     );
   }
 

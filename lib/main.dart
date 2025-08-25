@@ -43,12 +43,6 @@ class _ValinorAppState extends State<ValinorApp> {
     });
   }
 
-  final List<String> _titles = [
-    'Inventario',
-    'Ventas',
-    'Reportes',
-  ];
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -56,7 +50,7 @@ class _ValinorAppState extends State<ValinorApp> {
       theme: ThemeData(primarySwatch: Colors.blue),
       home: Scaffold(
         appBar: AppBar(
-          title: Text(_titles[_selectedIndex]),
+          title: Text("Valinor Ludoteca"),
         ),
         body: _screens[_selectedIndex],
         bottomNavigationBar: BottomNavigationBar(

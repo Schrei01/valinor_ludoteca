@@ -23,7 +23,7 @@ class DatabaseHelper {
     _database = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 2, // subimos versión para que corra onUpgrade
+        version: 3, // subimos versión para que corra onUpgrade
         onCreate: _createDB,
         onUpgrade: _upgradeDB,
       ),
@@ -39,7 +39,8 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         quantity INTEGER NOT NULL,
         price REAL NOT NULL,
-        purchasePrice REAL NOT NULL DEFAULT 0
+        purchasePrice REAL NOT NULL DEFAULT 0,
+        lote TEXT NOT NULL DEFAULT ''
       )
     ''');
 
@@ -73,11 +74,18 @@ class DatabaseHelper {
 
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      await db.execute('ALTER TABLE products ADD COLUMN purchasePrice REAL NOT NULL DEFAULT 0');
-    }
-  
+  if (oldVersion < 2) {
+    await db.execute(
+      'ALTER TABLE products ADD COLUMN purchasePrice REAL NOT NULL DEFAULT 0'
+    );
   }
+
+  if (oldVersion < 3) {
+    await db.execute(
+      'ALTER TABLE products ADD COLUMN lote TEXT NOT NULL DEFAULT '''
+    );
+  }
+}
 
     // Insertar producto
   Future<int> insertOrUpdateProduct(Product product, {String? password}) async {
@@ -100,17 +108,16 @@ class DatabaseHelper {
         'quantity': newQuantity,
         'price': product.price,
         'purchasePrice': product.purchasePrice,
+        'lote': product.lote,
       },
       where: 'id = ?',
       whereArgs: [existingProduct.id],
     );
   } else {
     // Insertar nuevo producto
-    return await db.insert('products', product.toMap());
+    return await db.insert('products', product.toMap(includeId: true));
   }
 }
-
-
 
   // Obtener lista de productos
   Future<List<Product>> getProducts() async {

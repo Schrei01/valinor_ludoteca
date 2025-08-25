@@ -18,6 +18,7 @@ class _InventarioScreenState extends State<InventarioScreen> {
   final _quantityController = TextEditingController();
   final _priceController = TextEditingController();
   final _purchasePriceController = TextEditingController();
+  final _loteController = TextEditingController();
 
   @override
   void initState() {
@@ -85,6 +86,7 @@ class _InventarioScreenState extends State<InventarioScreen> {
     _quantityController.clear();
     _priceController.clear();
     _purchasePriceController.clear();
+    _loteController.clear();
 
     setState(() {
       _loadProducts();
@@ -135,6 +137,7 @@ class _InventarioScreenState extends State<InventarioScreen> {
                         quantityController: _quantityController,
                         priceController: _priceController,
                         purchasePriceController: _purchasePriceController,
+                        loteController: _loteController,
                         onAddProduct: _addProduct,
                         existingProducts: existingProducts,
                       );

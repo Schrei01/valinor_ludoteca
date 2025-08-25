@@ -46,8 +46,11 @@ class ProductList extends StatelessWidget {
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const Center(child: Text('No hay productos'));
         }
+        // Sort products by name
+        final products = snapshot.data!..sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
 
-        final products = snapshot.data!;
         return ListView.builder(
           itemCount: products.length,
           itemBuilder: (context, index) {
@@ -57,7 +60,8 @@ class ProductList extends StatelessWidget {
               subtitle: Text(
                 'Cantidad: ${p.quantity}  |  '
                 'Precio venta: \$${_currencyFormat.format(p.price)}  |  '
-                'Precio compra: \$${_currencyFormat.format(p.purchasePrice)}',
+                'Precio compra: \$${_currencyFormat.format(p.purchasePrice)} | '
+                'Lote: ${p.lote}',
               ),
               trailing: IconButton(
                 icon: const Icon(Icons.delete, color: Colors.red),

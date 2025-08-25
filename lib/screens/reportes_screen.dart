@@ -17,12 +17,13 @@ class _ReportesScreenState extends State<ReportesScreen> {
   double _totalGanancias = 0;
   bool _loading = false;
 
-  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm');
   final NumberFormat _currencyFormat = NumberFormat("#,##0", "es_CO");
 
-
-  Future<void> _selectDate(BuildContext context, bool isStart) async {
+  Future<void> _selectDateTime(BuildContext context, bool isStart) async {
     final initialDate = isStart ? (_startDate ?? DateTime.now()) : (_endDate ?? DateTime.now());
+
+    // Primero selecciona fecha
     final newDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
@@ -31,21 +32,35 @@ class _ReportesScreenState extends State<ReportesScreen> {
     );
 
     if (newDate != null) {
-      setState(() {
-        if (isStart) {
-          _startDate = newDate;
-          // Ajustar end date si está antes que start
-          if (_endDate != null && _endDate!.isBefore(newDate)) {
-            _endDate = newDate;
+      // Después selecciona hora
+      final newTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(initialDate),
+      );
+
+      if (newTime != null) {
+        final fullDateTime = DateTime(
+          newDate.year,
+          newDate.month,
+          newDate.day,
+          newTime.hour,
+          newTime.minute,
+        );
+
+        setState(() {
+          if (isStart) {
+            _startDate = fullDateTime;
+            if (_endDate != null && _endDate!.isBefore(fullDateTime)) {
+              _endDate = fullDateTime;
+            }
+          } else {
+            _endDate = fullDateTime;
+            if (_startDate != null && _startDate!.isAfter(fullDateTime)) {
+              _startDate = fullDateTime;
+            }
           }
-        } else {
-          _endDate = newDate;
-          // Ajustar start date si está después que end
-          if (_startDate != null && _startDate!.isAfter(newDate)) {
-            _startDate = newDate;
-          }
-        }
-      });
+        });
+      }
     }
   }
 
@@ -69,7 +84,6 @@ class _ReportesScreenState extends State<ReportesScreen> {
       _totalGanancias = data['totalGanancias'];
       _loading = false;
     });
-
   }
 
   @override
@@ -78,7 +92,8 @@ class _ReportesScreenState extends State<ReportesScreen> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          const Text('Reporte de Ventas', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const Text('Reporte de Ventas',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
 
           const SizedBox(height: 16),
 
@@ -86,25 +101,17 @@ class _ReportesScreenState extends State<ReportesScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton(
-                onPressed: () => _selectDate(context, true),
-                child: Text(_startDate == null ? 'Fecha inicio' : _dateFormat.format(_startDate!)),
+                onPressed: () => _selectDateTime(context, true),
+                child: Text(
+                  _startDate == null ? 'Fecha inicio' : _dateFormat.format(_startDate!),
+                ),
               ),
               const SizedBox(width: 20),
               ElevatedButton(
-                onPressed: () => _selectDate(context, false),
-                child: Text(_endDate == null ? 'Fecha fin' : _dateFormat.format(_endDate!)),
-              ),
-              const SizedBox(width: 20),
-              ElevatedButton(
-                onPressed: () {
-                  final today = DateTime.now();
-                  setState(() {
-                    _startDate = DateTime(today.year, today.month, today.day);
-                    _endDate = DateTime(today.year, today.month, today.day, 23, 59, 59);
-                  });
-                  _loadReport();
-                },
-                child: const Text('Hoy'),
+                onPressed: () => _selectDateTime(context, false),
+                child: Text(
+                  _endDate == null ? 'Fecha fin' : _dateFormat.format(_endDate!),
+                ),
               ),
               const SizedBox(width: 20),
               ElevatedButton(
@@ -130,22 +137,24 @@ class _ReportesScreenState extends State<ReportesScreen> {
                   return ListTile(
                     title: Text(item['name']),
                     subtitle: Text('Cantidad vendida: ${item['total_quantity']}'),
-                    trailing: Text('Total: \$${_currencyFormat.format(item['total_sales'])}'),
+                    trailing:
+                        Text('Total: \$${_currencyFormat.format(item['total_sales'])}'),
                   );
                 },
               ),
             ),
-            const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-            Text(
-              'Total general: \$${_currencyFormat.format(_totalGeneral)}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(width: 40),
-            Text(
-              'Total ganancias: \$${_currencyFormat.format(_totalGanancias)}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
-            ),
+          Text(
+            'Total general: \$${_currencyFormat.format(_totalGeneral)}',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(width: 40),
+          Text(
+            'Total ganancias: \$${_currencyFormat.format(_totalGanancias)}',
+            style: const TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
+          ),
         ],
       ),
     );
