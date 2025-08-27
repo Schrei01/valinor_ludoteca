@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:valinor_ludoteca_desktop/models/products.dart';
 import 'package:valinor_ludoteca_desktop/models/saleline.dart';
 import 'package:valinor_ludoteca_desktop/providers/accounts_provider.dart';
+import 'package:valinor_ludoteca_desktop/providers/cash_provider.dart';
 import 'package:valinor_ludoteca_desktop/widgets/sale_line_widget.dart';
 import '../db/database_helper.dart';
 
@@ -205,6 +206,7 @@ class _VentasScreenState extends State<VentasScreen> {
                             RegisterSaleButton(
                               onPressed: () {
                                   _registerSaleForAccount(account);
+                                  context.read<CashProvider>().agregarVenta(account.total);
                                   accountsProvider.removeAccount(index);}
                             ),
                           ],

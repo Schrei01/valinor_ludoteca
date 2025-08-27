@@ -23,13 +23,30 @@ class DatabaseHelper {
     _database = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 3, // subimos versión para que corra onUpgrade
-        onCreate: _createDB,
-        onUpgrade: _upgradeDB,
+        version: 6,
+        onCreate: (db, version) async {
+          await _createDB(db, version);
+          await _createDBCaja(db, version);
+        },
+        onUpgrade: (db, oldVersion, newVersion) async {
+          await _upgradeDB(db, oldVersion, newVersion);
+        },
       ),
     );
 
     return _database!;
+  }
+
+  Future _createDBCaja(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE cash (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        total REAL NOT NULL
+      )
+    ''');
+
+    // Insertar registro inicial con total 0
+    await db.insert('cash', {'total': 167000.0});
   }
 
   Future _createDB(Database db, int version) async {
@@ -74,18 +91,40 @@ class DatabaseHelper {
 
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
-  if (oldVersion < 2) {
-    await db.execute(
-      'ALTER TABLE products ADD COLUMN purchasePrice REAL NOT NULL DEFAULT 0'
-    );
+
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE products ADD COLUMN purchasePrice REAL NOT NULL DEFAULT 0'
+      );
+    }
+
+    if (oldVersion < 3) {
+      await db.execute(
+        'ALTER TABLE products ADD COLUMN lote TEXT NOT NULL DEFAULT '''
+      );
+    }
+
+    if (oldVersion < 6) {
+      // 👇 1. crear la tabla si no existe
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS cash (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          total REAL NOT NULL
+        )
+      ''');
+
+      // 👇 2. verificar si hay registros
+      final result = await db.query('cash');
+      if (result.isEmpty) {
+        await db.insert('cash', {'total': 167000});
+        print("Migración v6: tabla cash creada y valor inicial insertado (167000)");
+      } else {
+        await db.update('cash', {'total': 167000}, where: 'id = 1');
+        print("Migración v6: valor de caja actualizado a 167000");
+      }
+    }
   }
 
-  if (oldVersion < 3) {
-    await db.execute(
-      'ALTER TABLE products ADD COLUMN lote TEXT NOT NULL DEFAULT '''
-    );
-  }
-}
 
     // Insertar producto
   Future<int> insertOrUpdateProduct(Product product, {String? password}) async {

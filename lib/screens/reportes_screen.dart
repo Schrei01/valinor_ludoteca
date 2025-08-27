@@ -3,7 +3,7 @@ import '../db/database_helper.dart';
 import 'package:intl/intl.dart';
 
 class ReportesScreen extends StatefulWidget {
-  const ReportesScreen({Key? key}) : super(key: key);
+  const ReportesScreen({super.key});
 
   @override
   State<ReportesScreen> createState() => _ReportesScreenState();
@@ -34,6 +34,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
     if (newDate != null) {
       // Después selecciona hora
       final newTime = await showTimePicker(
+        // ignore: use_build_context_synchronously
         context: context,
         initialTime: TimeOfDay.fromDateTime(initialDate),
       );
