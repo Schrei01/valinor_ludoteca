@@ -23,7 +23,7 @@ class DatabaseHelper {
     _database = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 6,
+        version: 7,
         onCreate: (db, version) async {
           await _createDB(db, version);
           await _createDBCaja(db, version);
@@ -117,11 +117,19 @@ class DatabaseHelper {
       final result = await db.query('cash');
       if (result.isEmpty) {
         await db.insert('cash', {'total': 167000});
-        print("Migración v6: tabla cash creada y valor inicial insertado (167000)");
       } else {
         await db.update('cash', {'total': 167000}, where: 'id = 1');
-        print("Migración v6: valor de caja actualizado a 167000");
       }
+    }
+
+    if (oldVersion < 7) {
+      // Agregar columna "fecha" a la tabla cash
+      await db.execute('ALTER TABLE cash ADD COLUMN fecha TEXT');
+
+      // Actualizar los registros existentes con fecha actual
+      await db.update('cash', {
+        'fecha': DateTime.now().toIso8601String(),
+      });
     }
   }
 

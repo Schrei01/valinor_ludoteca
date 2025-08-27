@@ -12,16 +12,26 @@ class CashProvider with ChangeNotifier {
   Future<void> cargarCaja() async {
     final db = await DatabaseHelper.instance.database;
 
-    final result = await db.query('cash', limit: 1);
+    // Traer el último registro insertado (id más alto)
+    final result = await db.query(
+      'cash',
+      orderBy: 'id DESC',
+      limit: 1,
+    );
 
     if (result.isNotEmpty) {
-      _totalEnCaja = result.first['total'] as double;
+      _totalEnCaja = (result.first['total'] as num).toDouble();
     } else {
       _totalEnCaja = 0;
-      await db.insert('cash', {'total': 0});
+      await db.insert('cash', {
+        'total': 0,
+        'fecha': DateTime.now().toIso8601String(),
+      });
     }
+
     notifyListeners();
   }
+
 
   /// Sumar una venta
   Future<void> agregarVenta(double monto) async {
@@ -40,29 +50,32 @@ class CashProvider with ChangeNotifier {
 
   /// Resetear caja si lo necesitas
   Future<void> discountByHosting() async {
-    final db = await DatabaseHelper.instance.database;
+  final db = await DatabaseHelper.instance.database;
 
-    // 1. Obtener el valor actual en caja
-    final result = await db.query('cash', where: 'id = ?', whereArgs: [1], limit: 1);
+  // 1. Obtener el último registro (el más reciente)
+  final result = await db.query(
+    'cash',
+    orderBy: 'id DESC',
+    limit: 1,
+  );
 
-    if (result.isNotEmpty) {
+  if (result.isNotEmpty) {
       double currentTotal = (result.first['total'] as num).toDouble();
 
       // 2. Restar 40,000
       double newTotal = currentTotal - 40000;
 
-      // 3. Actualizar en base de datos
-      await db.update(
-        'cash',
-        {'total': newTotal},
-        where: 'id = ?',
-        whereArgs: [1],
-      );
+      // 3. Insertar un NUEVO registro con el nuevo total y fecha actual
+      await db.insert('cash', {
+        'total': newTotal,
+        'fecha': DateTime.now().toIso8601String(),
+      });
 
-      // 4. Refrescar variable local si la tienes (ejemplo: _totalEnCaja)
+      // 4. Actualizar variable local
       _totalEnCaja = newTotal;
 
       notifyListeners();
     }
   }
+
 }
