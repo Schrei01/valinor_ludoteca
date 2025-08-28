@@ -35,18 +35,40 @@ class CashProvider with ChangeNotifier {
 
   /// Sumar una venta
   Future<void> agregarVenta(double monto) async {
-    _totalEnCaja += monto;
-
     final db = await DatabaseHelper.instance.database;
 
-    await db.update(
+    // 1. Traer el último registro (id más alto)
+    final result = await db.query(
       'cash',
-      {'total': _totalEnCaja},
-      where: 'id = 1',
+      orderBy: 'id DESC',
+      limit: 1,
     );
+
+    if (result.isNotEmpty) {
+      int lastId = result.first['id'] as int;
+      double currentTotal = (result.first['total'] as num).toDouble();
+
+      // 2. Actualizar total en memoria y DB
+      _totalEnCaja = currentTotal + monto;
+
+      await db.update(
+        'cash',
+        {'total': _totalEnCaja},
+        where: 'id = ?',
+        whereArgs: [lastId],
+      );
+    } else {
+      // Si no existe registro, creamos uno nuevo
+      _totalEnCaja = monto;
+      await db.insert('cash', {
+        'total': _totalEnCaja,
+        'fecha': DateTime.now().toIso8601String(),
+      });
+    }
 
     notifyListeners();
   }
+
 
   /// Resetear caja si lo necesitas
   Future<void> discountByHosting() async {

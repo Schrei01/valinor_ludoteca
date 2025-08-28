@@ -4,9 +4,14 @@ import 'package:valinor_ludoteca_desktop/models/products.dart';
 class SaleLine {
   Product? product;
   int quantity; // cantidad numérica
+  String? paymentMethod; // <-- Medio de pago (Efectivo / Nequi)
 
   final TextEditingController quantityController = TextEditingController();
 
-  SaleLine({this.product, this.quantity = 0});
+  SaleLine({
+    this.product,
+    this.quantity = 0,
+    this.paymentMethod,
+  });
 }
 

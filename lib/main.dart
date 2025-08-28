@@ -1,34 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:valinor_ludoteca_desktop/providers/accounts_provider.dart';
-import 'package:valinor_ludoteca_desktop/providers/cash_provider.dart';
-import 'package:valinor_ludoteca_desktop/screens/administracion_screen.dart';
-import 'package:valinor_ludoteca_desktop/screens/reportes_screen.dart';
+//import 'package:google_fonts/google_fonts.dart';
+import 'providers/cash_provider.dart';
+import 'providers/nequi_provider.dart';
+import 'providers/accounts_provider.dart';
 import 'screens/inventario_screen.dart';
 import 'screens/ventas_screen.dart';
+import 'screens/reportes_screen.dart';
+import 'screens/administracion_screen.dart';
 
 void main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Creamos el provider
+  // Creamos el provider y cargamos valores desde BD
   final cashProvider = CashProvider();
-  await cashProvider.cargarCaja(); // 👈 carga el valor de BD
+  await cashProvider.cargarCaja();
+
+  final nequiProvider = NequiProvider();
+  await nequiProvider.cargarNequi();
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AccountsProvider()),
-        ChangeNotifierProvider.value(value: cashProvider), // 👈 usamos el inicializado
+        ChangeNotifierProvider.value(value: cashProvider),
+        ChangeNotifierProvider.value(value: nequiProvider),
       ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Valinor Ludoteca',
-        theme: ThemeData(primarySwatch: Colors.blue),
-        home: const ValinorApp(),
-      ),
+      child: const ValinorAppWrapper(),
     ),
   );
+}
+
+// Wrapper para aplicar MaterialApp con tema
+class ValinorAppWrapper extends StatelessWidget {
+  const ValinorAppWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Valinor Sanctum', // Nombre temático
+      theme: ThemeData(
+        primaryColor: const Color.fromARGB(255, 18, 17, 19),
+        scaffoldBackgroundColor: Colors.grey.shade100,
+        appBarTheme: AppBarTheme(
+          backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+          elevation: 4,
+          centerTitle: true,
+        ),
+        textTheme: Theme.of(context).textTheme,
+      ),
+      home: const ValinorApp(),
+    );
+  }
 }
 
 class ValinorApp extends StatefulWidget {
@@ -58,12 +82,30 @@ class _ValinorAppState extends State<ValinorApp> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Valinor Ludoteca"),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Image.asset(
+            'assets/logo_valinor.png', // Ícono élfico opcional
+            width: 200,   // Ancho deseado
+            height: 200,  // Alto deseado
+            fit: BoxFit.contain,
+          ),
+        ),
+        title: const Text(
+          'Valinor Sanctum',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+            color: Colors.white,
+          ),
+        ),
       ),
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.deepPurple.shade700,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.inventory),
@@ -86,5 +128,5 @@ class _ValinorAppState extends State<ValinorApp> {
       ),
     );
   }
-
 }
+

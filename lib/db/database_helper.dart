@@ -23,10 +23,11 @@ class DatabaseHelper {
     _database = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 7,
+        version: 9,
         onCreate: (db, version) async {
           await _createDB(db, version);
           await _createDBCaja(db, version);
+          await _createDBNequi(db, version);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           await _upgradeDB(db, oldVersion, newVersion);
@@ -35,6 +36,18 @@ class DatabaseHelper {
     );
 
     return _database!;
+  }
+
+  Future _createDBNequi(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS nequi (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        total REAL NOT NULL
+      )
+    ''');
+
+    // Insertar registro inicial con total 4000
+    await db.insert('nequi', {'total': 4000.0});
   }
 
   Future _createDBCaja(Database db, int version) async {
@@ -92,18 +105,6 @@ class DatabaseHelper {
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
 
-    if (oldVersion < 2) {
-      await db.execute(
-        'ALTER TABLE products ADD COLUMN purchasePrice REAL NOT NULL DEFAULT 0'
-      );
-    }
-
-    if (oldVersion < 3) {
-      await db.execute(
-        'ALTER TABLE products ADD COLUMN lote TEXT NOT NULL DEFAULT '''
-      );
-    }
-
     if (oldVersion < 6) {
       // 👇 1. crear la tabla si no existe
       await db.execute('''
@@ -128,6 +129,17 @@ class DatabaseHelper {
 
       // Actualizar los registros existentes con fecha actual
       await db.update('cash', {
+        'fecha': DateTime.now().toIso8601String(),
+      });
+    }
+
+    if (oldVersion < 8) {
+      // Crear la tabla nequi si vienes de una versión anterior
+      await _createDBNequi(db, newVersion);
+    }
+
+    if (oldVersion < 9) {
+      await db.update('nequi', {
         'fecha': DateTime.now().toIso8601String(),
       });
     }

@@ -40,58 +40,77 @@ class SaleLineWidget extends StatelessWidget {
 
           // Producto
           Expanded(
-          flex: 2,
-          child: Autocomplete<Product>(
-            optionsBuilder: (TextEditingValue value) {
-              if (value.text.isEmpty) {
-                return const Iterable<Product>.empty();
-              }
-              return products.where((p) =>
-                  p.name.toLowerCase().contains(value.text.toLowerCase()));
-            },
-            displayStringForOption: (p) => p.name,
-            initialValue: line.product != null
-                ? TextEditingValue(text: line.product!.name)
-                : const TextEditingValue(),
-            fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-              return TextField(
-                controller: controller,
-                focusNode: focusNode,
-                decoration: const InputDecoration(
-                  labelText: 'Selecciona un producto',
-                ),
-                onEditingComplete: onEditingComplete,
-              );
-            },
-            onSelected: (p) {
-              line.product = p;
-              // también podrías actualizar el precio automáticamente aquí
-              onChanged();
-            },
-            optionsViewBuilder: (context, onSelected, options) {
-              return Align(
-                alignment: Alignment.topLeft,
-                child: Material(
-                  elevation: 4,
-                  child: SizedBox(
-                    height: 200,
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      itemCount: options.length,
-                      itemBuilder: (context, index) {
-                        final Product option = options.elementAt(index);
-                        return ListTile(
-                          title: Text('${option.name} (Stock: ${option.quantity})'),
-                          subtitle: Text(
-                            'Precio: \$${_currencyFormat.format(option.price)}',
-                          ),
-                          onTap: () => onSelected(option),
-                        );
-                      },
+            flex: 2,
+            child: Autocomplete<Product>(
+              optionsBuilder: (TextEditingValue value) {
+                if (value.text.isEmpty) {
+                  return const Iterable<Product>.empty();
+                }
+                return products.where((p) =>
+                    p.name.toLowerCase().contains(value.text.toLowerCase()));
+              },
+              displayStringForOption: (p) => p.name,
+              initialValue: line.product != null
+                  ? TextEditingValue(text: line.product!.name)
+                  : const TextEditingValue(),
+              fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: const InputDecoration(
+                    labelText: 'Selecciona un producto',
+                  ),
+                  onEditingComplete: onEditingComplete,
+                );
+              },
+              onSelected: (p) {
+                line.product = p;
+                // también podrías actualizar el precio automáticamente aquí
+                onChanged();
+              },
+              optionsViewBuilder: (context, onSelected, options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4,
+                    child: SizedBox(
+                      height: 200,
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: options.length,
+                        itemBuilder: (context, index) {
+                          final Product option = options.elementAt(index);
+                          return ListTile(
+                            title: Text('${option.name} (Stock: ${option.quantity})'),
+                            subtitle: Text(
+                              'Precio: \$${_currencyFormat.format(option.price)}',
+                            ),
+                            onTap: () => onSelected(option),
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
-              );
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(width: 16),
+
+        // Medio de pago
+        Expanded(
+          flex: 2,
+          child: DropdownButtonFormField<String>(
+            decoration: const InputDecoration(labelText: 'Medio de pago'),
+            initialValue: line.paymentMethod,
+            items: const [
+              DropdownMenuItem(value: 'Efectivo', child: Text('Efectivo')),
+              DropdownMenuItem(value: 'Nequi', child: Text('Nequi')),
+            ],
+            onChanged: (value) {
+              line.paymentMethod = value;
+              onChanged();
             },
           ),
         ),
