@@ -6,6 +6,7 @@ class ProductForm extends StatelessWidget {
   final TextEditingController quantityController;
   final TextEditingController priceController;
   final TextEditingController purchasePriceController;
+  final TextEditingController loteController;
   final Future<void> Function(Product) onAddProduct; // 🔹 ahora recibe el producto
   final List<Product> existingProducts;
 
@@ -15,6 +16,7 @@ class ProductForm extends StatelessWidget {
     required this.quantityController,
     required this.priceController,
     required this.purchasePriceController,
+    required this.loteController,
     required this.onAddProduct,
     required this.existingProducts,
   });
@@ -51,6 +53,7 @@ class ProductForm extends StatelessWidget {
             priceController.text = selected.price.toStringAsFixed(2);
             purchasePriceController.text =
                 selected.purchasePrice.toStringAsFixed(2);
+            loteController.text = selected.lote ?? '';
           },
         ),
         TextField(
@@ -68,6 +71,11 @@ class ProductForm extends StatelessWidget {
           decoration: const InputDecoration(labelText: 'Precio compra'),
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
         ),
+        TextField(
+          controller: loteController,
+          decoration: const InputDecoration(labelText: 'Lote'),
+          keyboardType: TextInputType.text,
+        ),
         const SizedBox(height: 8),
         ElevatedButton(
           onPressed: () async {
@@ -75,8 +83,9 @@ class ProductForm extends StatelessWidget {
             final quantity = int.tryParse(quantityController.text.trim());
             final price = double.tryParse(priceController.text.trim());
             final purchasePrice = double.tryParse(purchasePriceController.text.trim());
+            final lote = loteController.text.trim();
 
-            if (name.isEmpty || quantity == null || price == null || purchasePrice == null) {
+            if (name.isEmpty || quantity == null || price == null || purchasePrice == null || lote.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Por favor completa todos los campos correctamente')),
               );
@@ -88,6 +97,7 @@ class ProductForm extends StatelessWidget {
               quantity: quantity,
               price: price,
               purchasePrice: purchasePrice,
+              lote: lote, // o algún valor por defecto
             );
 
             await onAddProduct(newProduct);

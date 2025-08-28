@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:valinor_ludoteca_desktop/models/products.dart';
 import 'package:valinor_ludoteca_desktop/models/saleline.dart';
 import 'package:valinor_ludoteca_desktop/providers/accounts_provider.dart';
+import 'package:valinor_ludoteca_desktop/providers/cash_provider.dart';
+import 'package:valinor_ludoteca_desktop/providers/nequi_provider.dart';
 import 'package:valinor_ludoteca_desktop/widgets/sale_line_widget.dart';
 import '../db/database_helper.dart';
 
@@ -16,12 +18,9 @@ class VentasScreen extends StatefulWidget {
 
 class _VentasScreenState extends State<VentasScreen> {
   List<Product> _products = [];
-  final List<Account> _accounts = [Account()];
 
   bool _loading = true;
   final List<SaleLine> _saleLines = [];
-
-  final NumberFormat _currencyFormat = NumberFormat("#,##0", "es_CO");
 
 
   @override
@@ -41,7 +40,7 @@ class _VentasScreenState extends State<VentasScreen> {
     });
   }
 
-  void _registerSaleForAccount(Account account) async {
+  Future<Map<String, dynamic>> _registerSaleForAccount(Account account) async {
     bool hasError = false;
 
     for (var line in account.saleLines) {
@@ -73,34 +72,40 @@ class _VentasScreenState extends State<VentasScreen> {
       }
     }
 
-    if (hasError) return;
+    if (hasError) return {'hasError': true, 'totals': []};
 
     final now = DateTime.now().toIso8601String();
+
+    // Guardar totales antes de limpiar
+    List<double> lineTotals = [];
 
     for (var line in account.saleLines) {
       final quantity = int.parse(line.quantityController.text.trim());
       final product = line.product!;
+      final totalLine = quantity * product.price;
+      lineTotals.add(totalLine);
 
       await DatabaseHelper.instance.insertSale(product.id!, quantity, now);
     }
 
     // ignore: use_build_context_synchronously
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Ventas registradas correctamente en cuenta ${_accounts.indexOf(account) + 1}')),
+      SnackBar(content: Text('Ventas registradas correctamente')),
     );
 
-    // Limpiar la cuenta después de registrar
+    // Limpiar la cuenta después
     for (var line in account.saleLines) {
       line.quantityController.clear();
       line.product = null;
     }
-
     account.total = 0;
-
     setState(() {});
 
     await _loadProducts();
+
+    return {'hasError': false, 'totals': lineTotals};
   }
+
   
 
   @override
@@ -141,6 +146,7 @@ class _VentasScreenState extends State<VentasScreen> {
                             Expanded(
                               child: TextField(
                                 controller: account.nameController,
+                                focusNode: account.nameFocusNode,
                                 decoration: const InputDecoration(
                                   hintText: "Nombre de la cuenta",
                                   border: InputBorder.none,
@@ -168,19 +174,55 @@ class _VentasScreenState extends State<VentasScreen> {
                           int saleIndex = saleEntry.key;
                           SaleLine line = saleEntry.value;
 
-                          return SaleLineWidget(
-                            line: line,
-                            products: _products,
-                            onChanged: () {
-                              accountsProvider.updateTotal(index);
-                            },
-                            onRemove: account.saleLines.length > 1
-                                ? () {
-                                    accountsProvider.removeSaleLine(index, saleIndex);
-                                  }
-                                : null,
+                          double lineTotal = 0;
+                          final quantity = int.tryParse(line.quantityController.text) ?? 0;
+                          final price = line.product?.price ?? 0;
+                          lineTotal = quantity * price;
+                          final NumberFormat currencyFormat = NumberFormat("#,##0", "es_CO");
+
+                          return Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: SaleLineWidget(
+                                  line: line,
+                                  products: _products,
+                                  onChanged: () {
+                                    accountsProvider.updateTotal(index);
+                                  },
+                                  onRemove: account.saleLines.length > 1
+                                      ? () {
+                                          accountsProvider.removeSaleLine(index, saleIndex);
+                                        }
+                                      : null,
+                                ),
+                              ),
+
+                              const SizedBox(width: 12),
+
+                              // Cuarta casilla: monto de la línea
+                              Expanded(
+                                flex: 1,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey.shade300),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    "\$${currencyFormat.format(lineTotal)}", // formato sin decimales
+                                    textAlign: TextAlign.right,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           );
                         }),
+
 
                         const SizedBox(height: 12),
 
@@ -204,8 +246,28 @@ class _VentasScreenState extends State<VentasScreen> {
                             ),
                             const SizedBox(width: 16),
                             RegisterSaleButton(
-                              onPressed: () =>
-                                  _registerSaleForAccount(account),
+                              onPressed: () async {
+                                final result = await _registerSaleForAccount(account);
+                                bool hasError = result['hasError'];
+                                List<double> lineTotals = result['totals'];
+
+                                if (!hasError) {
+                                  for (int i = 0; i < account.saleLines.length; i++) {
+                                    final line = account.saleLines[i];
+                                    final total = lineTotals[i];
+
+                                    if (line.paymentMethod == "Efectivo") {
+                                      // ignore: use_build_context_synchronously
+                                      context.read<CashProvider>().agregarVenta(total);
+                                    } else if (line.paymentMethod == "Nequi") {
+                                      // ignore: use_build_context_synchronously
+                                      context.read<NequiProvider>().agregarVenta(total);
+                                    }
+                                  }
+
+                                  accountsProvider.removeAccount(index);
+                                }
+                              },     
                             ),
                           ],
                         ),
@@ -284,11 +346,29 @@ class RegisterSaleButton extends StatelessWidget {
 
 class Account {
   final TextEditingController nameController;
+  final FocusNode nameFocusNode;
   List<SaleLine> saleLines;
   double total;
 
   Account({String? name})
       : nameController = TextEditingController(text: name ?? "Cuenta"),
+        nameFocusNode = FocusNode(),
         saleLines = [SaleLine()],
-        total = 0.0;
+        total = 0.0 {
+    // 🔹 Selecciona todo el texto automáticamente al recibir el foco
+    nameFocusNode.addListener(() {
+      if (nameFocusNode.hasFocus) {
+        nameController.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: nameController.text.length,
+        );
+      }
+    });
+  }
+
+  void dispose() {
+    nameController.dispose();
+    nameFocusNode.dispose();
+  }
 }
+

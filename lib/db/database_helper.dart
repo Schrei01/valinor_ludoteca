@@ -23,13 +23,43 @@ class DatabaseHelper {
     _database = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 2, // subimos versión para que corra onUpgrade
-        onCreate: _createDB,
-        onUpgrade: _upgradeDB,
+        version: 9,
+        onCreate: (db, version) async {
+          await _createDB(db, version);
+          await _createDBCaja(db, version);
+          await _createDBNequi(db, version);
+        },
+        onUpgrade: (db, oldVersion, newVersion) async {
+          await _upgradeDB(db, oldVersion, newVersion);
+        },
       ),
     );
 
     return _database!;
+  }
+
+  Future _createDBNequi(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS nequi (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        total REAL NOT NULL
+      )
+    ''');
+
+    // Insertar registro inicial con total 4000
+    await db.insert('nequi', {'total': 4000.0});
+  }
+
+  Future _createDBCaja(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE cash (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        total REAL NOT NULL
+      )
+    ''');
+
+    // Insertar registro inicial con total 0
+    await db.insert('cash', {'total': 167000.0});
   }
 
   Future _createDB(Database db, int version) async {
@@ -39,7 +69,8 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         quantity INTEGER NOT NULL,
         price REAL NOT NULL,
-        purchasePrice REAL NOT NULL DEFAULT 0
+        purchasePrice REAL NOT NULL DEFAULT 0,
+        lote TEXT NOT NULL DEFAULT ''
       )
     ''');
 
@@ -73,11 +104,47 @@ class DatabaseHelper {
 
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      await db.execute('ALTER TABLE products ADD COLUMN purchasePrice REAL NOT NULL DEFAULT 0');
+
+    if (oldVersion < 6) {
+      // 👇 1. crear la tabla si no existe
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS cash (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          total REAL NOT NULL
+        )
+      ''');
+
+      // 👇 2. verificar si hay registros
+      final result = await db.query('cash');
+      if (result.isEmpty) {
+        await db.insert('cash', {'total': 167000});
+      } else {
+        await db.update('cash', {'total': 167000}, where: 'id = 1');
+      }
     }
-  
+
+    if (oldVersion < 7) {
+      // Agregar columna "fecha" a la tabla cash
+      await db.execute('ALTER TABLE cash ADD COLUMN fecha TEXT');
+
+      // Actualizar los registros existentes con fecha actual
+      await db.update('cash', {
+        'fecha': DateTime.now().toIso8601String(),
+      });
+    }
+
+    if (oldVersion < 8) {
+      // Crear la tabla nequi si vienes de una versión anterior
+      await _createDBNequi(db, newVersion);
+    }
+
+    if (oldVersion < 9) {
+      await db.update('nequi', {
+        'fecha': DateTime.now().toIso8601String(),
+      });
+    }
   }
+
 
     // Insertar producto
   Future<int> insertOrUpdateProduct(Product product, {String? password}) async {
@@ -100,17 +167,16 @@ class DatabaseHelper {
         'quantity': newQuantity,
         'price': product.price,
         'purchasePrice': product.purchasePrice,
+        'lote': product.lote,
       },
       where: 'id = ?',
       whereArgs: [existingProduct.id],
     );
   } else {
     // Insertar nuevo producto
-    return await db.insert('products', product.toMap());
+    return await db.insert('products', product.toMap(includeId: true));
   }
 }
-
-
 
   // Obtener lista de productos
   Future<List<Product>> getProducts() async {

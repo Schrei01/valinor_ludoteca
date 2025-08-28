@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:valinor_ludoteca_desktop/models/saleline.dart';
 import 'package:valinor_ludoteca_desktop/screens/ventas_screen.dart';
 
-// ✅ Asegúrate de importar tus modelos
-// import 'models/account.dart';
-// import 'models/sale_line.dart';
-// import 'models/product.dart';
 
 class AccountsProvider extends ChangeNotifier {
   final List<Account> _accounts = [Account()];
