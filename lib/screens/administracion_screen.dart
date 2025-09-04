@@ -11,7 +11,7 @@ class AdministracionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final caja = context.watch<CashProvider>().totalEnCaja; // escucha los cambios
     final nequi = context.watch<NequiProvider>().totalEnNequi; // escucha Nequi
-    final cajaMayor = 300000;
+    final cajaMayor = 0;
     final totalGeneral = caja + nequi + cajaMayor;
     final NumberFormat currencyFormat = NumberFormat("#,##0", "es_CO");
 

@@ -105,6 +105,18 @@ class DatabaseHelper {
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
 
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE products ADD COLUMN purchasePrice REAL NOT NULL DEFAULT 0'
+      );
+    }
+
+    if (oldVersion < 3) {
+      await db.execute(
+        'ALTER TABLE products ADD COLUMN lote TEXT NOT NULL DEFAULT '''
+      );
+    }
+
     if (oldVersion < 6) {
       // 👇 1. crear la tabla si no existe
       await db.execute('''

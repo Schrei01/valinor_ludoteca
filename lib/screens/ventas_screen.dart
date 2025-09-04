@@ -8,6 +8,7 @@ import 'package:valinor_ludoteca_desktop/providers/cash_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/nequi_provider.dart';
 import 'package:valinor_ludoteca_desktop/widgets/sale_line_widget.dart';
 import '../db/database_helper.dart';
+import 'package:uuid/uuid.dart';
 
 class VentasScreen extends StatefulWidget {
   const VentasScreen({super.key});
@@ -46,6 +47,7 @@ class _VentasScreenState extends State<VentasScreen> {
     for (var line in account.saleLines) {
       final quantity = int.tryParse(line.quantityController.text.trim());
       final product = line.product;
+      final paymentMethod = line.paymentMethod;
 
       if (product == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -70,6 +72,14 @@ class _VentasScreenState extends State<VentasScreen> {
         hasError = true;
         break;
       }
+
+      if (paymentMethod == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Selecciona un medio de pago en todas las lineas')),
+        );
+        hasError = true;
+        break;
+      }
     }
 
     if (hasError) return {'hasError': true, 'totals': []};
@@ -90,7 +100,7 @@ class _VentasScreenState extends State<VentasScreen> {
 
     // ignore: use_build_context_synchronously
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Ventas registradas correctamente')),
+      SnackBar(content: Text('Venta registrada correctamente')),
     );
 
     // Limpiar la cuenta después
@@ -134,6 +144,7 @@ class _VentasScreenState extends State<VentasScreen> {
                 final account = entry.value;
 
                 return Card(
+                  key: ValueKey(account.id),
                   margin: const EdgeInsets.only(bottom: 20),
                   elevation: 4,
                   child: Padding(
@@ -345,13 +356,15 @@ class RegisterSaleButton extends StatelessWidget {
 
 
 class Account {
+  final String id;
   final TextEditingController nameController;
   final FocusNode nameFocusNode;
   List<SaleLine> saleLines;
   double total;
 
   Account({String? name})
-      : nameController = TextEditingController(text: name ?? "Cuenta"),
+      : id = const Uuid().v4(),
+        nameController = TextEditingController(text: name ?? "Cuenta"),
         nameFocusNode = FocusNode(),
         saleLines = [SaleLine()],
         total = 0.0 {
