@@ -50,6 +50,16 @@ class DatabaseHelper {
     await db.insert('nequi', {'total': 4000.0});
   }
 
+  Future _createDBCajaMayor(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS caja_mayor (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        total REAL NOT NULL,
+        fecha TEXT
+      )
+    ''');
+  }
+
   Future _createDBCaja(Database db, int version) async {
     await db.execute('''
       CREATE TABLE cash (
@@ -154,6 +164,11 @@ class DatabaseHelper {
       await db.update('nequi', {
         'fecha': DateTime.now().toIso8601String(),
       });
+    }
+
+    if (oldVersion < 10) {
+      // Crear nueva tabla "caja_mayor"
+      await _createDBCajaMayor(db, newVersion);
     }
   }
 
