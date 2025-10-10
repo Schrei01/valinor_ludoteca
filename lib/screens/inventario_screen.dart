@@ -13,6 +13,7 @@ class InventarioScreen extends StatefulWidget {
 
 class _InventarioScreenState extends State<InventarioScreen> {
   late Future<List<Product>> _productsFuture;
+  late Future<List<Product>> _allProductsFuture;
 
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController();
@@ -27,23 +28,22 @@ class _InventarioScreenState extends State<InventarioScreen> {
   @override
   void initState() {
     super.initState();
-    _productsFuture = _loadProducts(); // ✅ Inicialización inmediata
+    _productsFuture = _loadProducts(); // productos con cantidad > 0
+    _allProductsFuture = DatabaseHelper.instance.getAllProducts(); // todos los productos
     _searchController.addListener(() {
       _filterProducts(_searchController.text);
     });
   }
 
   Future<List<Product>> _loadProducts() async {
-    final products = await DatabaseHelper.instance.getProducts();
-
-    final filteredProducts = products.where((p) => p.quantity > 0).toList();
+    final products = await DatabaseHelper.instance.getProducts(); // 👈 solo los > 0
 
     setState(() {
-      _allProducts = filteredProducts;
-      _filteredProducts = filteredProducts;
+      _allProducts = products;
+      _filteredProducts = products;
     });
 
-    return filteredProducts;
+    return products;
   }
 
   void _filterProducts(String query) {
@@ -146,7 +146,7 @@ class _InventarioScreenState extends State<InventarioScreen> {
                 SizedBox(
                   width: 300,
                   child: FutureBuilder<List<Product>>(
-                    future: _productsFuture,
+                    future: _allProductsFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());

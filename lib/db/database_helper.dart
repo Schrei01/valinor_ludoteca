@@ -262,6 +262,12 @@ class DatabaseHelper {
     );
   }
 
+  Future<List<Product>> getAllProducts() async {
+    final db = await instance.database;
+    final result = await db.query('products'); // 👈 sin WHERE quantity > 0
+    return result.map((json) => Product.fromMap(json)).toList();
+  }
+
   // Insertar venta
   Future<int> insertSale(int productId, int quantity, String date) async {
     final db = await instance.database;
