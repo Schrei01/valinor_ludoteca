@@ -56,13 +56,6 @@ class _InventarioScreenState extends State<InventarioScreen> {
     setState(() => _filteredProducts = filtered);
   }
 
-  void _refreshProducts() {
-    setState(() {
-      _productsFuture = _loadProducts(); // 🔄 Recarga productos actualizados
-    });
-  }
-
-
   Future<bool> _askPassword(BuildContext context) async {
     final controller = TextEditingController();
     return await showDialog<bool>(

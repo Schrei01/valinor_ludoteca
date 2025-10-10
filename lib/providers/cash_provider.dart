@@ -47,35 +47,17 @@ class CashProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Establecer un nuevo total (por ejemplo, para transferencias)
+  Future<void> setTotalEnCaja(double nuevoTotal) async {
+    _totalEnCaja = nuevoTotal;
 
-  /// Resetear caja si lo necesitas
-  Future<void> discountByHosting() async {
-  final db = await DatabaseHelper.instance.database;
+    final db = await DatabaseHelper.instance.database;
+    await db.insert('cash', {
+      'total': _totalEnCaja,
+      'fecha': DateTime.now().toIso8601String(),
+    });
 
-  // 1. Obtener el último registro (el más reciente)
-  final result = await db.query(
-    'cash',
-    orderBy: 'id DESC',
-    limit: 1,
-  );
-
-  if (result.isNotEmpty) {
-      double currentTotal = (result.first['total'] as num).toDouble();
-
-      // 2. Restar 40,000
-      double newTotal = currentTotal - 40000;
-
-      // 3. Insertar un NUEVO registro con el nuevo total y fecha actual
-      await db.insert('cash', {
-        'total': newTotal,
-        'fecha': DateTime.now().toIso8601String(),
-      });
-
-      // 4. Actualizar variable local
-      _totalEnCaja = newTotal;
-
-      notifyListeners();
-    }
+    notifyListeners();
   }
 
 }

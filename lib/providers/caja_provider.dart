@@ -34,4 +34,17 @@ class CajaMayorProvider with ChangeNotifier {
 
     notifyListeners();
   }
+
+  Future<void> setTotalEnCajaMayor(double nuevoTotal) async {
+    _totalEnCajaMayor = nuevoTotal;
+
+    final db = await DatabaseHelper.instance.database;
+    await db.insert('caja_mayor', {
+      'total': _totalEnCajaMayor,
+      'fecha': DateTime.now().toIso8601String(),
+    });
+
+    notifyListeners();
+  }
+
 }

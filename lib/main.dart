@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:valinor_ludoteca_desktop/providers/deudas_provider.dart';
 import 'providers/cash_provider.dart';
 import 'providers/nequi_provider.dart';
 import 'providers/caja_provider.dart';
@@ -22,6 +23,9 @@ void main() async {
   final cajaProvider = CajaMayorProvider();
   await cajaProvider.cargarTotal();
 
+  final deudasProvider = DeudasProvider();
+  await deudasProvider.cargarTotal();
+
   runApp(
     MultiProvider(
       providers: [
@@ -29,6 +33,7 @@ void main() async {
         ChangeNotifierProvider.value(value: cashProvider),
         ChangeNotifierProvider.value(value: nequiProvider),
         ChangeNotifierProvider.value(value: cajaProvider),
+        ChangeNotifierProvider.value(value: deudasProvider),
       ],
       child: const ValinorAppWrapper(),
     ),

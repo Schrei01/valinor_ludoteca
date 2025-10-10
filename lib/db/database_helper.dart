@@ -23,12 +23,13 @@ class DatabaseHelper {
     _database = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 10,
+        version: 11,
         onCreate: (db, version) async {
           await _createDB(db, version);
           await _createDBCaja(db, version);
           await _createDBNequi(db, version);
           await _createDBCajaMayor(db, version);
+          await _createDBDeudas(db, version);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           await _upgradeDB(db, oldVersion, newVersion);
@@ -54,6 +55,16 @@ class DatabaseHelper {
   Future _createDBCajaMayor(Database db, int version) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS caja_mayor (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        total REAL NOT NULL,
+        fecha TEXT
+      )
+    ''');
+  }
+
+  Future _createDBDeudas(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS deudas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         total REAL NOT NULL,
         fecha TEXT
@@ -176,6 +187,20 @@ class DatabaseHelper {
     final result = await db.query('caja_mayor');
     if (result.isEmpty) {
       await db.insert('caja_mayor', {
+        'total': 0,
+        'fecha': DateTime.now().toIso8601String(),
+      });
+    }
+
+    if (oldVersion < 11) {
+      // Crear nueva tabla "caja_mayor"
+      await _createDBDeudas(db, newVersion);
+    }
+
+    // Insertar registro inicial si está vacía
+    final result1 = await db.query('deudas');
+    if (result1.isEmpty) {
+      await db.insert('deudas', {
         'total': 0,
         'fecha': DateTime.now().toIso8601String(),
       });
