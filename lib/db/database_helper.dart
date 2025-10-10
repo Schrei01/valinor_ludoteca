@@ -23,11 +23,13 @@ class DatabaseHelper {
     _database = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 9,
+        version: 11,
         onCreate: (db, version) async {
           await _createDB(db, version);
           await _createDBCaja(db, version);
           await _createDBNequi(db, version);
+          await _createDBCajaMayor(db, version);
+          await _createDBDeudas(db, version);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           await _upgradeDB(db, oldVersion, newVersion);
@@ -48,6 +50,26 @@ class DatabaseHelper {
 
     // Insertar registro inicial con total 4000
     await db.insert('nequi', {'total': 4000.0});
+  }
+
+  Future _createDBCajaMayor(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS caja_mayor (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        total REAL NOT NULL,
+        fecha TEXT
+      )
+    ''');
+  }
+
+  Future _createDBDeudas(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS deudas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        total REAL NOT NULL,
+        fecha TEXT
+      )
+    ''');
   }
 
   Future _createDBCaja(Database db, int version) async {
@@ -105,6 +127,18 @@ class DatabaseHelper {
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
 
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE products ADD COLUMN purchasePrice REAL NOT NULL DEFAULT 0'
+      );
+    }
+
+    if (oldVersion < 3) {
+      await db.execute(
+        'ALTER TABLE products ADD COLUMN lote TEXT NOT NULL DEFAULT '''
+      );
+    }
+
     if (oldVersion < 6) {
       // 👇 1. crear la tabla si no existe
       await db.execute('''
@@ -143,6 +177,34 @@ class DatabaseHelper {
         'fecha': DateTime.now().toIso8601String(),
       });
     }
+
+    if (oldVersion < 10) {
+      // Crear nueva tabla "caja_mayor"
+      await _createDBCajaMayor(db, newVersion);
+    }
+
+    // Insertar registro inicial si está vacía
+    final result = await db.query('caja_mayor');
+    if (result.isEmpty) {
+      await db.insert('caja_mayor', {
+        'total': 0,
+        'fecha': DateTime.now().toIso8601String(),
+      });
+    }
+
+    if (oldVersion < 11) {
+      // Crear nueva tabla "caja_mayor"
+      await _createDBDeudas(db, newVersion);
+    }
+
+    // Insertar registro inicial si está vacía
+    final result1 = await db.query('deudas');
+    if (result1.isEmpty) {
+      await db.insert('deudas', {
+        'total': 0,
+        'fecha': DateTime.now().toIso8601String(),
+      });
+    }
   }
 
 
@@ -178,10 +240,16 @@ class DatabaseHelper {
   }
 }
 
-  // Obtener lista de productos
+  // Obtener lista de productos (solo los que tienen cantidad > 0)
   Future<List<Product>> getProducts() async {
     final db = await instance.database;
-    final maps = await db.query('products');
+
+    final maps = await db.query(
+      'products',
+      where: 'quantity > ?',
+      whereArgs: [0],
+    );
+
     return maps.map((map) => Product.fromMap(map)).toList();
   }
 
@@ -192,6 +260,12 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  Future<List<Product>> getAllProducts() async {
+    final db = await instance.database;
+    final result = await db.query('products'); // 👈 sin WHERE quantity > 0
+    return result.map((json) => Product.fromMap(json)).toList();
   }
 
   // Insertar venta
@@ -270,4 +344,4 @@ class DatabaseHelper {
     };
   }
 
-  }
+}

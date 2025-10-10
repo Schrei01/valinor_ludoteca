@@ -43,4 +43,17 @@ class NequiProvider with ChangeNotifier {
 
     notifyListeners();
   }
+
+  Future<void> setTotalEnNequi(double nuevoTotal) async {
+  _totalEnNequi = nuevoTotal;
+
+  final db = await DatabaseHelper.instance.database;
+  await db.insert('nequi', {
+    'total': _totalEnNequi,
+    'fecha': DateTime.now().toIso8601String(),
+  });
+
+  notifyListeners();
+}
+
 }

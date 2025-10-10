@@ -35,69 +35,29 @@ class CashProvider with ChangeNotifier {
 
   /// Sumar una venta
   Future<void> agregarVenta(double monto) async {
+    _totalEnCaja += monto;
+
     final db = await DatabaseHelper.instance.database;
 
-    // 1. Traer el último registro (id más alto)
-    final result = await db.query(
-      'cash',
-      orderBy: 'id DESC',
-      limit: 1,
-    );
-
-    if (result.isNotEmpty) {
-      int lastId = result.first['id'] as int;
-      double currentTotal = (result.first['total'] as num).toDouble();
-
-      // 2. Actualizar total en memoria y DB
-      _totalEnCaja = currentTotal + monto;
-
-      await db.update(
-        'cash',
-        {'total': _totalEnCaja},
-        where: 'id = ?',
-        whereArgs: [lastId],
-      );
-    } else {
-      // Si no existe registro, creamos uno nuevo
-      _totalEnCaja = monto;
-      await db.insert('cash', {
-        'total': _totalEnCaja,
-        'fecha': DateTime.now().toIso8601String(),
-      });
-    }
+    await db.insert('cash', {
+      'total': _totalEnCaja,
+      'fecha': DateTime.now().toIso8601String(),
+    });
 
     notifyListeners();
   }
 
+  /// Establecer un nuevo total (por ejemplo, para transferencias)
+  Future<void> setTotalEnCaja(double nuevoTotal) async {
+    _totalEnCaja = nuevoTotal;
 
-  /// Resetear caja si lo necesitas
-  Future<void> discountByHosting() async {
-  final db = await DatabaseHelper.instance.database;
+    final db = await DatabaseHelper.instance.database;
+    await db.insert('cash', {
+      'total': _totalEnCaja,
+      'fecha': DateTime.now().toIso8601String(),
+    });
 
-  // 1. Obtener el último registro (el más reciente)
-  final result = await db.query(
-    'cash',
-    orderBy: 'id DESC',
-    limit: 1,
-  );
-
-  if (result.isNotEmpty) {
-      double currentTotal = (result.first['total'] as num).toDouble();
-
-      // 2. Restar 40,000
-      double newTotal = currentTotal - 40000;
-
-      // 3. Insertar un NUEVO registro con el nuevo total y fecha actual
-      await db.insert('cash', {
-        'total': newTotal,
-        'fecha': DateTime.now().toIso8601String(),
-      });
-
-      // 4. Actualizar variable local
-      _totalEnCaja = newTotal;
-
-      notifyListeners();
-    }
+    notifyListeners();
   }
 
 }

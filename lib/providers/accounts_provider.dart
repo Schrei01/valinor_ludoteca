@@ -10,9 +10,29 @@ class AccountsProvider extends ChangeNotifier {
 
   /// Agregar nueva cuenta
   void addAccount() {
-    _accounts.add(Account(name: "Cuenta ${_accounts.length + 1}"));
+    // Filtrar las cuentas que siguen el formato "Cuenta X"
+    final cuentasConNumero = _accounts
+        .map((a) => a.nameController.text)
+        .where((name) => name.startsWith("Cuenta "))
+        .toList();
+
+    int nextNumber = 1;
+
+    if (cuentasConNumero.isNotEmpty) {
+      // Obtener el número más alto
+      final numeros = cuentasConNumero.map((name) {
+        final partes = name.split(" ");
+        return int.tryParse(partes.last) ?? 0;
+      }).toList();
+
+      final maxNumero = numeros.reduce((a, b) => a > b ? a : b);
+      nextNumber = maxNumero + 1;
+    }
+
+    _accounts.add(Account(name: "Cuenta $nextNumber"));
     notifyListeners();
-  }
+}
+
 
   /// Eliminar una cuenta
   void removeAccount(int index) {

@@ -13,21 +13,47 @@ class InventarioScreen extends StatefulWidget {
 
 class _InventarioScreenState extends State<InventarioScreen> {
   late Future<List<Product>> _productsFuture;
+  late Future<List<Product>> _allProductsFuture;
 
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController();
   final _priceController = TextEditingController();
   final _purchasePriceController = TextEditingController();
   final _loteController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+
+  List<Product> _allProducts = [];
+  List<Product> _filteredProducts = [];
 
   @override
   void initState() {
     super.initState();
-    _loadProducts();
+    _productsFuture = _loadProducts(); // productos con cantidad > 0
+    _allProductsFuture = DatabaseHelper.instance.getAllProducts(); // todos los productos
+    _searchController.addListener(() {
+      _filterProducts(_searchController.text);
+    });
   }
 
-  void _loadProducts() {
-    _productsFuture = DatabaseHelper.instance.getProducts();
+  Future<List<Product>> _loadProducts() async {
+    final products = await DatabaseHelper.instance.getProducts(); // 👈 solo los > 0
+
+    setState(() {
+      _allProducts = products;
+      _filteredProducts = products;
+    });
+
+    return products;
+  }
+
+  void _filterProducts(String query) {
+    final filtered = _allProducts.where((product) {
+      final nameLower = product.name.toLowerCase();
+      final searchLower = query.toLowerCase();
+      return nameLower.contains(searchLower);
+    }).toList();
+
+    setState(() => _filteredProducts = filtered);
   }
 
   Future<bool> _askPassword(BuildContext context) async {
@@ -88,9 +114,7 @@ class _InventarioScreenState extends State<InventarioScreen> {
     _purchasePriceController.clear();
     _loteController.clear();
 
-    setState(() {
-      _loadProducts();
-    });
+    await _loadProducts();
   } catch (e) {
     // ignore: use_build_context_synchronously
     ScaffoldMessenger.of(context).showSnackBar(
@@ -122,7 +146,7 @@ class _InventarioScreenState extends State<InventarioScreen> {
                 SizedBox(
                   width: 300,
                   child: FutureBuilder<List<Product>>(
-                    future: _productsFuture,
+                    future: _allProductsFuture,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
@@ -147,11 +171,31 @@ class _InventarioScreenState extends State<InventarioScreen> {
 
                 const SizedBox(width: 20),
 
-                // 📜 LISTA DE PRODUCTOS
+                // 📜 LISTA + BUSCADOR
                 Expanded(
-                  child: ProductList(
-                    productsFuture: _productsFuture,
-                    onDeleteConfirmed: _loadProducts,
+                  child: Column(
+                    children: [
+                      // 🔍 BUSCADOR
+                      TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Buscar producto...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // 📋 LISTA DE PRODUCTOS FILTRADOS
+                      Expanded(
+                        child: ProductList(
+                          products: _filteredProducts, // 👈 ahora usa la lista filtrada
+                          onDeleteConfirmed: _loadProducts,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
