@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:valinor_ludoteca_desktop/providers/caja_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/cash_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/nequi_provider.dart';
 
@@ -11,7 +12,7 @@ class AdministracionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final caja = context.watch<CashProvider>().totalEnCaja; // escucha los cambios
     final nequi = context.watch<NequiProvider>().totalEnNequi; // escucha Nequi
-    final cajaMayor = 82028;
+    final cajaMayor = context.watch<CajaMayorProvider>().totalEnCajaMayor;
     final totalGeneral = caja + nequi + cajaMayor;
     final NumberFormat currencyFormat = NumberFormat("#,##0", "es_CO");
 

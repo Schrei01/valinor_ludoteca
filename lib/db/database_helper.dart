@@ -23,11 +23,12 @@ class DatabaseHelper {
     _database = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 9,
+        version: 10,
         onCreate: (db, version) async {
           await _createDB(db, version);
           await _createDBCaja(db, version);
           await _createDBNequi(db, version);
+          await _createDBCajaMayor(db, version);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           await _upgradeDB(db, oldVersion, newVersion);
@@ -170,6 +171,15 @@ class DatabaseHelper {
       // Crear nueva tabla "caja_mayor"
       await _createDBCajaMayor(db, newVersion);
     }
+
+    // Insertar registro inicial si está vacía
+    final result = await db.query('caja_mayor');
+    if (result.isEmpty) {
+      await db.insert('caja_mayor', {
+        'total': 0,
+        'fecha': DateTime.now().toIso8601String(),
+      });
+    }
   }
 
 
@@ -205,10 +215,16 @@ class DatabaseHelper {
   }
 }
 
-  // Obtener lista de productos
+  // Obtener lista de productos (solo los que tienen cantidad > 0)
   Future<List<Product>> getProducts() async {
     final db = await instance.database;
-    final maps = await db.query('products');
+
+    final maps = await db.query(
+      'products',
+      where: 'quantity > ?',
+      whereArgs: [0],
+    );
+
     return maps.map((map) => Product.fromMap(map)).toList();
   }
 
@@ -297,4 +313,4 @@ class DatabaseHelper {
     };
   }
 
-  }
+}

@@ -19,16 +19,49 @@ class _InventarioScreenState extends State<InventarioScreen> {
   final _priceController = TextEditingController();
   final _purchasePriceController = TextEditingController();
   final _loteController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+
+  List<Product> _allProducts = [];
+  List<Product> _filteredProducts = [];
 
   @override
   void initState() {
     super.initState();
-    _loadProducts();
+    _productsFuture = _loadProducts(); // ✅ Inicialización inmediata
+    _searchController.addListener(() {
+      _filterProducts(_searchController.text);
+    });
   }
 
-  void _loadProducts() {
-    _productsFuture = DatabaseHelper.instance.getProducts();
+  Future<List<Product>> _loadProducts() async {
+    final products = await DatabaseHelper.instance.getProducts();
+
+    final filteredProducts = products.where((p) => p.quantity > 0).toList();
+
+    setState(() {
+      _allProducts = filteredProducts;
+      _filteredProducts = filteredProducts;
+    });
+
+    return filteredProducts;
   }
+
+  void _filterProducts(String query) {
+    final filtered = _allProducts.where((product) {
+      final nameLower = product.name.toLowerCase();
+      final searchLower = query.toLowerCase();
+      return nameLower.contains(searchLower);
+    }).toList();
+
+    setState(() => _filteredProducts = filtered);
+  }
+
+  void _refreshProducts() {
+    setState(() {
+      _productsFuture = _loadProducts(); // 🔄 Recarga productos actualizados
+    });
+  }
+
 
   Future<bool> _askPassword(BuildContext context) async {
     final controller = TextEditingController();
@@ -88,9 +121,7 @@ class _InventarioScreenState extends State<InventarioScreen> {
     _purchasePriceController.clear();
     _loteController.clear();
 
-    setState(() {
-      _loadProducts();
-    });
+    await _loadProducts();
   } catch (e) {
     // ignore: use_build_context_synchronously
     ScaffoldMessenger.of(context).showSnackBar(
@@ -147,11 +178,31 @@ class _InventarioScreenState extends State<InventarioScreen> {
 
                 const SizedBox(width: 20),
 
-                // 📜 LISTA DE PRODUCTOS
+                // 📜 LISTA + BUSCADOR
                 Expanded(
-                  child: ProductList(
-                    productsFuture: _productsFuture,
-                    onDeleteConfirmed: _loadProducts,
+                  child: Column(
+                    children: [
+                      // 🔍 BUSCADOR
+                      TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Buscar producto...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // 📋 LISTA DE PRODUCTOS FILTRADOS
+                      Expanded(
+                        child: ProductList(
+                          products: _filteredProducts, // 👈 ahora usa la lista filtrada
+                          onDeleteConfirmed: _loadProducts,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
