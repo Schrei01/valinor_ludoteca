@@ -23,7 +23,7 @@ class DatabaseHelper {
     _database = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 11,
+        version: 12,
         onCreate: (db, version) async {
           await _createDB(db, version);
           await _createDBCaja(db, version);
@@ -101,6 +101,7 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         productId INTEGER NOT NULL,
         quantity INTEGER NOT NULL,
+        paymentMethod TEXT NOT NULL,
         date TEXT NOT NULL,
         FOREIGN KEY (productId) REFERENCES products (id)
       )
@@ -197,6 +198,12 @@ class DatabaseHelper {
       await _createDBDeudas(db, newVersion);
     }
 
+    if (oldVersion < 12) {
+      await db.execute(
+        'ALTER TABLE sales ADD COLUMN paymentMethod TEXT DEFAULT "Efectivo"'
+      );
+    }
+
     // Insertar registro inicial si está vacía
     final result1 = await db.query('deudas');
     if (result1.isEmpty) {
@@ -269,13 +276,19 @@ class DatabaseHelper {
   }
 
   // Insertar venta
-  Future<int> insertSale(int productId, int quantity, String date) async {
+  Future<int> insertSale(
+      int productId, 
+      int quantity, 
+      String paymentMethod,
+      String date, 
+    ) async {
     final db = await instance.database;
 
     // 1. Insertar venta
     final id = await db.insert('sales', {
       'productId': productId,
       'quantity': quantity,
+      'paymentMethod': paymentMethod,
       'date': date,
     });
 
@@ -323,6 +336,16 @@ class DatabaseHelper {
       WHERE s.date BETWEEN ? AND ?
     ''', [start.toIso8601String(), end.toIso8601String()]);
 
+    final paymentReport = await db.rawQuery('''
+      SELECT 
+        s.paymentMethod,
+        SUM(s.quantity * p.price) AS total
+      FROM sales s
+      JOIN products p ON s.productId = p.id
+      WHERE s.date BETWEEN ? AND ?
+      GROUP BY s.paymentMethod
+    ''', [start.toIso8601String(), end.toIso8601String()]);
+
     double totalGeneral = 0;
     double totalCost = 0;
 
@@ -341,6 +364,7 @@ class DatabaseHelper {
       'report': reportData,
       'totalGeneral': totalGeneral,
       'totalGanancias': totalGanancias,
+      'paymentReport': paymentReport,
     };
   }
 

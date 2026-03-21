@@ -29,7 +29,7 @@ class _InventarioScreenState extends State<InventarioScreen> {
   void initState() {
     super.initState();
     _productsFuture = _loadProducts(); // productos con cantidad > 0
-    _allProductsFuture = DatabaseHelper.instance.getAllProducts(); // todos los productos
+    _allProductsFuture = DatabaseHelper.instance.getAllProducts(); 
     _searchController.addListener(() {
       _filterProducts(_searchController.text);
     });

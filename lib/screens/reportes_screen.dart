@@ -16,6 +16,8 @@ class _ReportesScreenState extends State<ReportesScreen> {
   double _totalGeneral = 0;
   double _totalGanancias = 0;
   bool _loading = false;
+  double _totalEfectivo = 0;
+  double _totalNequi = 0;
 
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm');
   final NumberFormat _currencyFormat = NumberFormat("#,##0", "es_CO");
@@ -79,10 +81,25 @@ class _ReportesScreenState extends State<ReportesScreen> {
 
     final data = await DatabaseHelper.instance.getSalesReport(_startDate!, _endDate!);
 
+    double efectivo = 0;
+    double nequi = 0;
+
+    if (data['paymentReport'] != null) {
+      for (var row in data['paymentReport']) {
+        if (row['paymentMethod'] == 'Efectivo') {
+          efectivo = (row['total'] as num).toDouble();
+        } else if (row['paymentMethod'] == 'Nequi') {
+          nequi = (row['total'] as num).toDouble();
+        }
+      }
+    }
+
     setState(() {
       _reportData = List<Map<String, dynamic>>.from(data['report']);
       _totalGeneral = data['totalGeneral'];
       _totalGanancias = data['totalGanancias'];
+      _totalEfectivo = efectivo;
+      _totalNequi = nequi;
       _loading = false;
     });
   }
@@ -155,6 +172,15 @@ class _ReportesScreenState extends State<ReportesScreen> {
             'Total ganancias: \$${_currencyFormat.format(_totalGanancias)}',
             style: const TextStyle(
                 fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '💵 Efectivo: \$${_currencyFormat.format(_totalEfectivo)}',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            '📲 Nequi: \$${_currencyFormat.format(_totalNequi)}',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ],
       ),
