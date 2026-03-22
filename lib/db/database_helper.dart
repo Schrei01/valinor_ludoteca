@@ -23,13 +23,14 @@ class DatabaseHelper {
     _database = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 12,
+        version: 13,
         onCreate: (db, version) async {
           await _createDB(db, version);
           await _createDBCaja(db, version);
           await _createDBNequi(db, version);
           await _createDBCajaMayor(db, version);
           await _createDBDeudas(db, version);
+          await _createDBMovimientos(db, version);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           await _upgradeDB(db, oldVersion, newVersion);
@@ -38,6 +39,19 @@ class DatabaseHelper {
     );
 
     return _database!;
+  }
+
+  Future _createDBMovimientos(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS movimientos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT, -- ingreso / egreso / transferencia
+        cuenta TEXT,
+        monto REAL,
+        motivo TEXT,
+        fecha TEXT
+      )
+    ''');
   }
 
   Future _createDBNequi(Database db, int version) async {
@@ -204,6 +218,10 @@ class DatabaseHelper {
       );
     }
 
+    if (oldVersion < 13) {
+      await _createDBMovimientos(db, newVersion);
+    }
+
     // Insertar registro inicial si está vacía
     final result1 = await db.query('deudas');
     if (result1.isEmpty) {
@@ -310,6 +328,23 @@ class DatabaseHelper {
       where: 'quantity > 0',
     );
     return maps.map((map) => Product.fromMap(map)).toList();
+  }
+
+  Future<void> insertMovimiento({
+    required String tipo,
+    required String cuenta,
+    required double monto,
+    required String motivo,
+  }) async {
+    final db = await instance.database;
+
+    await db.insert('movimientos', {
+      'tipo': tipo,
+      'cuenta': cuenta,
+      'monto': monto,
+      'motivo': motivo,
+      'fecha': DateTime.now().toIso8601String(),
+    });
   }
 
   Future<Map<String, dynamic>> getSalesReport(DateTime start, DateTime end) async {

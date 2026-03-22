@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:valinor_ludoteca_desktop/db/database_helper.dart';
 import 'package:valinor_ludoteca_desktop/providers/caja_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/cash_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/deudas_provider.dart';
@@ -150,6 +151,7 @@ class AdministracionScreen extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.greenAccent,
                     ),
+                    
                   ),
                 ],
               ),
@@ -308,6 +310,16 @@ class AdministracionScreen extends StatelessWidget {
 
   Future<void> _showDiscontDialog(BuildContext context) async {
     final TextEditingController montoController = TextEditingController();
+    String? motivoSeleccionado;
+
+    final motivos = [
+      "Arriendo",
+      "Agua",
+      "Energía",
+      "Comestibles",
+      "Tienda",
+      "Host",
+    ];
     String? cuentaSeleccionada;
 
     // Opciones disponibles
@@ -337,6 +349,19 @@ class AdministracionScreen extends StatelessWidget {
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: "Monto"),
               ),
+              const SizedBox(height: 10),
+
+              // 🔥 NUEVO: Motivo
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: "Motivo",
+                  border: OutlineInputBorder(),
+                ),
+                items: motivos
+                    .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                    .toList(),
+                onChanged: (value) => motivoSeleccionado = value,
+              ),
             ],
           ),
           actions: [
@@ -354,9 +379,18 @@ class AdministracionScreen extends StatelessWidget {
                   return;
                 }
 
+                 // 🔥 1. GUARDAR MOVIMIENTO (AQUÍ VA)
+                await DatabaseHelper.instance.insertMovimiento(
+                  tipo: "egreso",
+                  cuenta: cuentaSeleccionada!,
+                  monto: monto,
+                  motivo: motivoSeleccionado!,
+                );
+
                 // 🔹 Lógica para descontar del provider correspondiente
                 switch (cuentaSeleccionada) {
                   case "Caja":
+                    // ignore: use_build_context_synchronously
                     context.read<CashProvider>().setTotalEnCaja(
                         context.read<CashProvider>().totalEnCaja - monto);
                     break;
