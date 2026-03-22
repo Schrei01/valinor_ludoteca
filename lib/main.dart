@@ -8,7 +8,7 @@ import 'providers/accounts_provider.dart';
 import 'screens/inventario_screen.dart';
 import 'screens/ventas_screen.dart';
 import 'screens/reportes_screen.dart';
-import 'screens/administracion_screen.dart';
+import 'screens/management/management_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,7 +78,7 @@ class _ValinorAppState extends State<ValinorApp> {
     InventarioScreen(),
     VentasScreen(),
     ReportesScreen(),
-    AdministracionScreen(),
+    ManagementScreen(),
   ];
 
   void _onItemTapped(int index) {
