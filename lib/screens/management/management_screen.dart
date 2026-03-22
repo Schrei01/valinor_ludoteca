@@ -46,7 +46,7 @@ class ManagementScreen extends StatelessWidget {
                   children: [
                     // 📜 HISTORIAL
                     const Expanded(
-                      flex: 2,
+                      flex: 1,
                       child: HistoricPanelWidget(),
                     ),
 

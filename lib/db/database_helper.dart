@@ -359,6 +359,41 @@ class DatabaseHelper {
     return result;
   }
 
+  Future<Map<String, double>> getFinancialSummary() async {
+    final db = await instance.database;
+
+    final cash = await db.query(
+      'cash',
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+
+    final nequi = await db.query(
+      'nequi',
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+
+    final cajaMayor = await db.query(
+      'caja_mayor',
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+
+    final deudas = await db.query(
+      'deudas',
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+
+    return {
+      'Caja': (cash.isNotEmpty ? cash.first['total'] as num : 0).toDouble(),
+      'Nequi': (nequi.isNotEmpty ? nequi.first['total'] as num : 0).toDouble(),
+      'Caja Mayor': (cajaMayor.isNotEmpty ? cajaMayor.first['total'] as num : 0).toDouble(),
+      'Deudas': (deudas.isNotEmpty ? deudas.first['total'] as num : 0).toDouble(),
+    };
+  }
+
   Future<Map<String, dynamic>> getSalesReport(DateTime start, DateTime end) async {
     final db = await instance.database;
 
