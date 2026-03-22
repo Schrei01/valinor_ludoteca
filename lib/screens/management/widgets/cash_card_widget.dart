@@ -23,18 +23,24 @@ class CashCardWidget extends StatelessWidget {
       ),
       elevation: 4,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), // 👈 mejor balance
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12), // 👈 más grande
               decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(Icons.account_balance_wallet, color: color),
+              child: Icon(
+                Icons.account_balance_wallet,
+                color: color,
+                size: 30, // 👈 ICONO MÁS GRANDE
+              ),
             ),
-            const SizedBox(width: 10),
+
+            const SizedBox(width: 14),
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,12 +48,19 @@ class CashCardWidget extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontSize: 18, // 👈 un poco más grande
+                      fontWeight: FontWeight.w600,
+                      color: Color.fromARGB(255, 73, 73, 73),
+                    ),
                   ),
+
+                  const SizedBox(height: 4),
+
                   Text(
                     "\$${currencyFormat.format(value)}",
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 22, // 👈 CLAVE: este es el protagonista
                       fontWeight: FontWeight.bold,
                       color: color,
                     ),

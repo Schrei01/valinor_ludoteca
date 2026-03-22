@@ -16,32 +16,42 @@ class CashSummary extends StatelessWidget {
     final cajaMayor = context.watch<CajaMayorProvider>().totalEnCajaMayor;
     final deudas = context.watch<DeudasProvider>().totalEnDeudas;
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 4,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 12, // espacio horizontal
+      runSpacing: 12, // espacio vertical
       children: [
-        CashCardWidget(
-          title: "Caja",
-          value: caja,
-          color: Colors.green,
+        SizedBox(
+          width: 250, // 👈 controlas ancho
+          child: CashCardWidget(
+            title: "Caja",
+            value: caja,
+            color: Colors.green,
+          ),
         ),
-        CashCardWidget(
-          title: "Nequi",
-          value: nequi,
-          color: Colors.purple,
+        SizedBox(
+          width: 250,
+          child: CashCardWidget(
+            title: "Nequi",
+            value: nequi,
+            color: Colors.purple,
+          ),
         ),
-        CashCardWidget(
-          title: "Caja Mayor",
-          value: cajaMayor,
-          color: Colors.blue,
+        SizedBox(
+          width: 250,
+          child: CashCardWidget(
+            title: "Caja Mayor",
+            value: cajaMayor,
+            color: Colors.blue,
+          ),
         ),
-        CashCardWidget(
-          title: "Deudas",
-          value: deudas,
-          color: Colors.red,
+        SizedBox(
+          width: 250,
+          child: CashCardWidget(
+            title: "Deudas",
+            value: deudas,
+            color: Colors.red,
+          ),
         ),
       ],
     );
