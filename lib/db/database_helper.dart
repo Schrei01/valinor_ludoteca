@@ -347,6 +347,18 @@ class DatabaseHelper {
     });
   }
 
+  Future<List<Map<String, dynamic>>> getLastMovimientos() async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      'movimientos',
+      orderBy: 'fecha DESC',
+      limit: 10,
+    );
+
+    return result;
+  }
+
   Future<Map<String, dynamic>> getSalesReport(DateTime start, DateTime end) async {
     final db = await instance.database;
 

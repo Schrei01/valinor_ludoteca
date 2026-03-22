@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:valinor_ludoteca_desktop/screens/management/widgets/action_panel_widget.dart';
 import 'package:valinor_ludoteca_desktop/screens/management/widgets/cash_summary_widget.dart';
+import 'package:valinor_ludoteca_desktop/screens/management/widgets/graphics_panel_widget.dart';
+import 'package:valinor_ludoteca_desktop/screens/management/widgets/historic_panel_widget.dart';
 import 'package:valinor_ludoteca_desktop/screens/management/widgets/total_card_widget.dart';
 
 class ManagementScreen extends StatelessWidget {
@@ -36,16 +38,29 @@ class ManagementScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // 🔥 FUTURO: HISTORIAL
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                "Historial de Movimientos",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: SizedBox(
+                height: 300,
+                child: Row(
+                  children: [
+                    // 📜 HISTORIAL
+                    const Expanded(
+                      flex: 2,
+                      child: HistoricPanelWidget(),
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    // 📊 GRÁFICA
+                    const Expanded(
+                      flex: 1,
+                      child: GraphicsPanelWidget(),
+                    ),
+                  ],
+                ),
               ),
             ),
-
-            const SizedBox(height: 10),
           ],
         )
       ),
