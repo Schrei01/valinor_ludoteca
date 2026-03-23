@@ -1,8 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:valinor_ludoteca_desktop/db/database_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:valinor_ludoteca_desktop/providers/movements_provider.dart';
 
-class HistoricPanelWidget extends StatelessWidget {
+class HistoricPanelWidget extends StatefulWidget {
   const HistoricPanelWidget({super.key});
+
+  @override
+  State<HistoricPanelWidget> createState() => _HistoricPanelWidgetState();
+}
+
+class _HistoricPanelWidgetState extends State<HistoricPanelWidget> {
+
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() {
+      context.read<MovementsProvider>().cargarMovimientos();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +53,6 @@ class HistoricPanelWidget extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // 🔹 Línea divisoria
           Divider(
             color: Colors.grey.shade300,
             thickness: 1,
@@ -45,22 +60,14 @@ class HistoricPanelWidget extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // 📜 CONTENIDO
           Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: DatabaseHelper.instance.getLastMovimientos(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+            child: Consumer<MovementsProvider>(
+              builder: (context, provider, _) {
+                final movimientos = provider.movimientos;
 
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                    child: Text("No hay movimientos"),
-                  );
+                if (movimientos.isEmpty) {
+                  return const Center(child: Text("No hay movimientos"));
                 }
-
-                final movimientos = snapshot.data!;
 
                 return ListView.separated(
                   itemCount: movimientos.length,
@@ -86,9 +93,7 @@ class HistoricPanelWidget extends StatelessWidget {
                       ),
                       title: Text(
                         "\$${monto.toString()}",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text("$cuenta • $motivo\n$fecha"),
                       isThreeLine: true,
