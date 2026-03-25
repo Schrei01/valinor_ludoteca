@@ -15,7 +15,7 @@ class _HistoricPanelWidgetState extends State<HistoricPanelWidget> {
   void initState() {
     super.initState();
 
-    Future.microtask(() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MovementsProvider>().cargarMovimientos();
     });
   }

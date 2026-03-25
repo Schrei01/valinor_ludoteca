@@ -18,6 +18,7 @@ Future<void> showExpenseDialog(BuildContext context) async {
     "Tienda",
     "Host",
     "Implementos",
+    "Aseo",
   ];
   String? cuentaSeleccionada;
 

@@ -8,6 +8,13 @@ class ReportsController extends ChangeNotifier {
   List<Map<String, dynamic>> reportData = [];
   double totalGeneral = 0;
   double totalGanancias = 0;
+  double cajaInicio = 0;
+  double nequiInicio = 0;
+
+  double ingresosCaja = 0;
+  double ingresosNequi = 0;
+
+  double egresos = 0;
 
   bool loading = false;
 
@@ -17,12 +24,41 @@ class ReportsController extends ChangeNotifier {
     loading = true;
     notifyListeners();
 
-    final data = await DatabaseHelper.instance
-        .getSalesReport(startDate!, endDate!);
+    final db = DatabaseHelper.instance;
+
+    final data = await db.getSalesReport(startDate!, endDate!);
 
     reportData = List<Map<String, dynamic>>.from(data['report']);
     totalGeneral = data['totalGeneral'];
     totalGanancias = data['totalGanancias'];
+
+    // 🟡 Caja y Nequi inicial (histórico)
+    cajaInicio = await db.getCajaBefore(startDate!);
+    nequiInicio = await db.getNequiBefore(startDate!);
+    egresos = await db.getEgresos(startDate!, endDate!);
+
+    // 🔥 INGRESOS POR MÉTODO DE PAGO (AQUÍ ESTÁ LA CLAVE)
+    double efectivo = 0;
+    double nequi = 0;
+
+    if (data['paymentReport'] != null) {
+      for (var row in data['paymentReport']) {
+        final rawMethod = row['paymentMethod'];
+        if (rawMethod == null) continue;
+
+        final method = rawMethod.toString().trim().toLowerCase();
+        final total = (row['total'] as num?)?.toDouble() ?? 0;
+
+        if (method == 'efectivo') {
+          efectivo += total;
+        } else if (method == 'nequi') {
+          nequi += total;
+        }
+      }
+    }
+
+    ingresosCaja = efectivo;
+    ingresosNequi = nequi;
 
     loading = false;
     notifyListeners();

@@ -19,22 +19,19 @@ class ReportList extends StatelessWidget {
       return const Text('No hay datos para el rango seleccionado');
     }
 
-    return Expanded(
-      child: ListView.builder(
-        itemCount: controller.reportData.length,
-        itemBuilder: (context, index) {
-          final item = controller.reportData[index];
+    return ListView.builder(
+      itemCount: controller.reportData.length,
+      itemBuilder: (context, index) {
+        final item = controller.reportData[index];
 
-          return ListTile(
-            title: Text(item['name']),
-            subtitle:
-                Text('Cantidad vendida: ${item['total_quantity']}'),
-            trailing: Text(
-              'Total: \$${currency.format(item['total_sales'])}',
-            ),
-          );
-        },
-      ),
+        return ListTile(
+          title: Text(item['name']),
+          subtitle: Text('Cantidad vendida: ${item['total_quantity']}'),
+          trailing: Text(
+            'Total: \$${currency.format(item['total_sales'])}',
+          ),
+        );
+      },
     );
   }
 }

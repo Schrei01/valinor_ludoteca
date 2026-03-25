@@ -347,6 +347,23 @@ class DatabaseHelper {
     });
   }
 
+  Future<double> getEgresos(DateTime start, DateTime end) async {
+    final db = await instance.database;
+
+    final result = await db.rawQuery('''
+      SELECT SUM(monto) as total
+      FROM movimientos
+      WHERE tipo = 'egreso'
+      AND fecha BETWEEN ? AND ?
+    ''', [start.toIso8601String(), end.toIso8601String()]);
+
+    if (result.isNotEmpty && result.first['total'] != null) {
+      return (result.first['total'] as num).toDouble();
+    }
+
+    return 0;
+  }
+
   Future<List<Map<String, dynamic>>> getLastMovimientos() async {
     final db = await instance.database;
 
@@ -392,6 +409,40 @@ class DatabaseHelper {
       'Caja Mayor': (cajaMayor.isNotEmpty ? cajaMayor.first['total'] as num : 0).toDouble(),
       'Deudas': (deudas.isNotEmpty ? deudas.first['total'] as num : 0).toDouble(),
     };
+  }
+
+  Future<double> getCajaBefore(DateTime date) async {
+    final db = await instance.database;
+
+    final result = await db.rawQuery('''
+      SELECT total FROM cash
+      WHERE fecha <= ?
+      ORDER BY fecha DESC
+      LIMIT 1
+    ''', [date.toIso8601String()]);
+
+    if (result.isNotEmpty && result.first['total'] != null) {
+      return (result.first['total'] as num).toDouble();
+    }
+
+    return 0;
+  }
+
+  Future<double> getNequiBefore(DateTime date) async {
+    final db = await instance.database;
+
+    final result = await db.rawQuery('''
+      SELECT total FROM nequi
+      WHERE fecha <= ?
+      ORDER BY fecha DESC
+      LIMIT 1
+    ''', [date.toIso8601String()]);
+
+    if (result.isNotEmpty && result.first['total'] != null) {
+      return (result.first['total'] as num).toDouble();
+    }
+
+    return 0;
   }
 
   Future<Map<String, dynamic>> getSalesReport(DateTime start, DateTime end) async {

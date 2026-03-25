@@ -11,22 +11,50 @@ class TotalsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final currency = NumberFormat("#,##0", "es_CO");
 
-    return Column(
-      children: [
-        const SizedBox(height: 16),
-        Text(
-          'Total general: \$${currency.format(controller.totalGeneral)}',
-          style: const TextStyle(
-              fontSize: 18, fontWeight: FontWeight.bold),
+    Widget row(String title, double value, {Color? color}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(title),
+            Text(
+              "\$${currency.format(value)}",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
         ),
-        Text(
-          'Total ganancias: \$${currency.format(controller.totalGanancias)}',
-          style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.green),
-        ),
-      ],
+      );
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Resumen',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const Divider(),
+
+          row("Caja inicio", controller.cajaInicio),
+          row("Nequi inicio", controller.nequiInicio),
+
+          const SizedBox(height: 10),
+
+          row("Ingresos Caja", controller.ingresosCaja, color: Colors.green),
+          row("Ingresos Nequi", controller.ingresosNequi, color: Colors.green),
+
+          const SizedBox(height: 10),
+
+          row("Ventas", controller.totalGeneral, color: Colors.blue),
+
+          row("Egresos", controller.egresos, color: Colors.red),
+        ],
+      ),
     );
   }
 }
