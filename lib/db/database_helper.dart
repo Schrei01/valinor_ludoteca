@@ -336,6 +336,7 @@ class DatabaseHelper {
     required double monto,
     required String motivo,
   }) async {
+
     final db = await instance.database;
 
     await db.insert('movimientos', {

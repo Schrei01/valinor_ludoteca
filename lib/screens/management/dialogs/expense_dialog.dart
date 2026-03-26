@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:valinor_ludoteca_desktop/db/database_helper.dart';
 import 'package:valinor_ludoteca_desktop/providers/caja_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/cash_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/deudas_provider.dart';
+import 'package:valinor_ludoteca_desktop/providers/movements_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/nequi_provider.dart';
 
 Future<void> showExpenseDialog(BuildContext context) async {
@@ -72,22 +72,21 @@ Future<void> showExpenseDialog(BuildContext context) async {
           ElevatedButton(
             onPressed: () async {
             final monto = double.tryParse(montoController.text) ?? 0;
-
+            
             if (cuentaSeleccionada == null || monto <= 0 || motivoSeleccionado == null) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text("Por favor, completa todos los campos")),
               );
               return;
             }
-
             // 🔥 CAPTURAR PROVIDERS ANTES DEL AWAIT
             final cashProvider = context.read<CashProvider>();
             final nequiProvider = context.read<NequiProvider>();
             final cajaMayorProvider = context.read<CajaMayorProvider>();
             final deudasProvider = context.read<DeudasProvider>();
+            final movementsProvider = context.read<MovementsProvider>();
 
-            // 🔥 AWAIT (sin usar context después directamente)
-            await DatabaseHelper.instance.insertMovimiento(
+            await movementsProvider.agregarMovimiento(
               tipo: "egreso",
               cuenta: cuentaSeleccionada!,
               monto: monto,
