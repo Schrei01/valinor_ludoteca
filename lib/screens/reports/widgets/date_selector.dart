@@ -57,19 +57,33 @@ class DateSelector extends StatelessWidget {
       children: [
         Expanded(
           child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
             onPressed: () => _selectDateTime(context, true),
-            child: Text(controller.startDate == null
+            child: Text(
+              controller.startDate == null
                 ? 'Fecha inicio'
-                : format.format(controller.startDate!)),
+                : format.format(controller.startDate!),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
             onPressed: () => _selectDateTime(context, false),
-            child: Text(controller.endDate == null
+            child: Text(
+              controller.endDate == null
                 ? 'Fecha fin'
-                : format.format(controller.endDate!)),
+                : format.format(controller.endDate!),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       ],

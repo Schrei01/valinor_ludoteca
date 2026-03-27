@@ -16,7 +16,16 @@ class ReportList extends StatelessWidget {
     }
 
     if (controller.reportData.isEmpty) {
-      return const Text('No hay datos para el rango seleccionado');
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.bar_chart, size: 40, color: Colors.grey),
+            SizedBox(height: 8),
+            Text('No hay datos para el rango seleccionado'),
+          ],
+        ),
+      );
     }
 
     return ListView.builder(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:valinor_ludoteca_desktop/screens/reports/controller/report_controller.dart';
+import 'package:valinor_ludoteca_desktop/screens/reports/widgets/report_pie_chart.dart';
 import 'package:valinor_ludoteca_desktop/screens/reports/widgets/totals_sections.dart';
 import 'widgets/date_selector.dart';
 import 'widgets/report_list.dart';
@@ -10,9 +11,7 @@ class ReportesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ReportsController(),
-      child: Consumer<ReportsController>(
+    return Consumer<ReportsController>(
         builder: (context, controller, _) {
           return Padding(
             padding: const EdgeInsets.all(16),
@@ -26,43 +25,71 @@ class ReportesScreen extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
-                // 🔹 FILTROS (ARRIBA)
-                _buildFilters(controller),
-
-                const SizedBox(height: 16),
-
-                // 🔹 CONTENIDO PRINCIPAL
+                // 🔹 CONTENIDO PRINCIPAL EN GRID
                 Expanded(
-                  flex: 3,
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start, // 🔥 clave
                     children: [
-                      // 🟣 LISTA
+                      // 🟣 COLUMNA IZQUIERDA
                       Expanded(
                         flex: 2,
-                        child: _buildCard(
-                          child: ReportList(controller: controller),
+                        child: Column(
+                          children: [
+                            // LISTA
+                            Expanded(
+                              flex: 2,
+                              child: _buildCard(
+                                child: ReportList(controller: controller),
+                              ),
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // GRÁFICA (más grande)
+                            Expanded(
+                              flex: 3,
+                              child: _buildCard(
+                                child: Center(
+                                  child: ReportPieChart(controller: controller),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
                       const SizedBox(width: 16),
 
-                      // 🔵 RESUMEN
+                      // 🔵 COLUMNA DERECHA
                       Expanded(
                         flex: 1,
-                        child: _buildCard(
-                          child: TotalsSection(controller: controller),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // FILTROS (solo lo necesario)
+                            _buildCard(
+                              child: _buildFilters(controller),
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // TOTALES (ocupa el resto)
+                            Expanded(
+                              child: _buildCard(
+                                child: TotalsSection(controller: controller),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-                              
+                ),             
               ],
             ),
           );
         },
-      ),
-    );
+      );
   }
 
   Widget _buildCard({required Widget child}) {

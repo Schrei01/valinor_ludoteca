@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/deudas_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/movements_provider.dart';
+import 'package:valinor_ludoteca_desktop/screens/reports/controller/report_controller.dart';
 import 'providers/cash_provider.dart';
 import 'providers/nequi_provider.dart';
 import 'providers/caja_provider.dart';
@@ -39,6 +40,7 @@ void main() async {
         ChangeNotifierProvider.value(value: cajaProvider),
         ChangeNotifierProvider.value(value: deudasProvider),
         ChangeNotifierProvider.value(value: movimientosProvider),
+        ChangeNotifierProvider(create: (_) => ReportsController()),
       ],
       child: const ValinorAppWrapper(),
     ),
