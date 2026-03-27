@@ -92,10 +92,17 @@ class _VentasScreenState extends State<VentasScreen> {
     for (var line in account.saleLines) {
       final quantity = int.parse(line.quantityController.text.trim());
       final product = line.product!;
+      final paymentMethod = line.paymentMethod!; // 👈 importante
       final totalLine = quantity * product.price;
+
       lineTotals.add(totalLine);
 
-      await DatabaseHelper.instance.insertSale(product.id!, quantity, now);
+      await DatabaseHelper.instance.insertSale(
+        product.id!,
+        quantity,
+        paymentMethod,
+        now,
+      );
     }
 
     // ignore: use_build_context_synchronously

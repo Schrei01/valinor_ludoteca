@@ -23,13 +23,14 @@ class DatabaseHelper {
     _database = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 11,
+        version: 13,
         onCreate: (db, version) async {
           await _createDB(db, version);
           await _createDBCaja(db, version);
           await _createDBNequi(db, version);
           await _createDBCajaMayor(db, version);
           await _createDBDeudas(db, version);
+          await _createDBMovimientos(db, version);
         },
         onUpgrade: (db, oldVersion, newVersion) async {
           await _upgradeDB(db, oldVersion, newVersion);
@@ -38,6 +39,19 @@ class DatabaseHelper {
     );
 
     return _database!;
+  }
+
+  Future _createDBMovimientos(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS movimientos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT, -- ingreso / egreso / transferencia
+        cuenta TEXT,
+        monto REAL,
+        motivo TEXT,
+        fecha TEXT
+      )
+    ''');
   }
 
   Future _createDBNequi(Database db, int version) async {
@@ -101,6 +115,7 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         productId INTEGER NOT NULL,
         quantity INTEGER NOT NULL,
+        paymentMethod TEXT NOT NULL,
         date TEXT NOT NULL,
         FOREIGN KEY (productId) REFERENCES products (id)
       )
@@ -197,6 +212,16 @@ class DatabaseHelper {
       await _createDBDeudas(db, newVersion);
     }
 
+    if (oldVersion < 12) {
+      await db.execute(
+        'ALTER TABLE sales ADD COLUMN paymentMethod TEXT DEFAULT "Efectivo"'
+      );
+    }
+
+    if (oldVersion < 13) {
+      await _createDBMovimientos(db, newVersion);
+    }
+
     // Insertar registro inicial si está vacía
     final result1 = await db.query('deudas');
     if (result1.isEmpty) {
@@ -269,13 +294,19 @@ class DatabaseHelper {
   }
 
   // Insertar venta
-  Future<int> insertSale(int productId, int quantity, String date) async {
+  Future<int> insertSale(
+      int productId, 
+      int quantity, 
+      String paymentMethod,
+      String date, 
+    ) async {
     final db = await instance.database;
 
     // 1. Insertar venta
     final id = await db.insert('sales', {
       'productId': productId,
       'quantity': quantity,
+      'paymentMethod': paymentMethod,
       'date': date,
     });
 
@@ -297,6 +328,122 @@ class DatabaseHelper {
       where: 'quantity > 0',
     );
     return maps.map((map) => Product.fromMap(map)).toList();
+  }
+
+  Future<void> insertMovimiento({
+    required String tipo,
+    required String cuenta,
+    required double monto,
+    required String motivo,
+  }) async {
+
+    final db = await instance.database;
+
+    await db.insert('movimientos', {
+      'tipo': tipo,
+      'cuenta': cuenta,
+      'monto': monto,
+      'motivo': motivo,
+      'fecha': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<double> getEgresos(DateTime start, DateTime end) async {
+    final db = await instance.database;
+
+    final result = await db.rawQuery('''
+      SELECT SUM(monto) as total
+      FROM movimientos
+      WHERE tipo = 'egreso'
+      AND fecha BETWEEN ? AND ?
+    ''', [start.toIso8601String(), end.toIso8601String()]);
+
+    if (result.isNotEmpty && result.first['total'] != null) {
+      return (result.first['total'] as num).toDouble();
+    }
+
+    return 0;
+  }
+
+  Future<List<Map<String, dynamic>>> getLastMovimientos() async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      'movimientos',
+      orderBy: 'fecha DESC',
+      limit: 10,
+    );
+
+    return result;
+  }
+
+  Future<Map<String, double>> getFinancialSummary() async {
+    final db = await instance.database;
+
+    final cash = await db.query(
+      'cash',
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+
+    final nequi = await db.query(
+      'nequi',
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+
+    final cajaMayor = await db.query(
+      'caja_mayor',
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+
+    final deudas = await db.query(
+      'deudas',
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+
+    return {
+      'Caja': (cash.isNotEmpty ? cash.first['total'] as num : 0).toDouble(),
+      'Nequi': (nequi.isNotEmpty ? nequi.first['total'] as num : 0).toDouble(),
+      'Caja Mayor': (cajaMayor.isNotEmpty ? cajaMayor.first['total'] as num : 0).toDouble(),
+      'Deudas': (deudas.isNotEmpty ? deudas.first['total'] as num : 0).toDouble(),
+    };
+  }
+
+  Future<double> getCajaBefore(DateTime date) async {
+    final db = await instance.database;
+
+    final result = await db.rawQuery('''
+      SELECT total FROM cash
+      WHERE fecha <= ?
+      ORDER BY fecha DESC
+      LIMIT 1
+    ''', [date.toIso8601String()]);
+
+    if (result.isNotEmpty && result.first['total'] != null) {
+      return (result.first['total'] as num).toDouble();
+    }
+
+    return 0;
+  }
+
+  Future<double> getNequiBefore(DateTime date) async {
+    final db = await instance.database;
+
+    final result = await db.rawQuery('''
+      SELECT total FROM nequi
+      WHERE fecha <= ?
+      ORDER BY fecha DESC
+      LIMIT 1
+    ''', [date.toIso8601String()]);
+
+    if (result.isNotEmpty && result.first['total'] != null) {
+      return (result.first['total'] as num).toDouble();
+    }
+
+    return 0;
   }
 
   Future<Map<String, dynamic>> getSalesReport(DateTime start, DateTime end) async {
@@ -323,6 +470,16 @@ class DatabaseHelper {
       WHERE s.date BETWEEN ? AND ?
     ''', [start.toIso8601String(), end.toIso8601String()]);
 
+    final paymentReport = await db.rawQuery('''
+      SELECT 
+        s.paymentMethod,
+        SUM(s.quantity * p.price) AS total
+      FROM sales s
+      JOIN products p ON s.productId = p.id
+      WHERE s.date BETWEEN ? AND ?
+      GROUP BY s.paymentMethod
+    ''', [start.toIso8601String(), end.toIso8601String()]);
+
     double totalGeneral = 0;
     double totalCost = 0;
 
@@ -341,6 +498,7 @@ class DatabaseHelper {
       'report': reportData,
       'totalGeneral': totalGeneral,
       'totalGanancias': totalGanancias,
+      'paymentReport': paymentReport,
     };
   }
 

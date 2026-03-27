@@ -12,7 +12,6 @@ class InventarioScreen extends StatefulWidget {
 }
 
 class _InventarioScreenState extends State<InventarioScreen> {
-  late Future<List<Product>> _productsFuture;
   late Future<List<Product>> _allProductsFuture;
 
   final _nameController = TextEditingController();
@@ -28,8 +27,8 @@ class _InventarioScreenState extends State<InventarioScreen> {
   @override
   void initState() {
     super.initState();
-    _productsFuture = _loadProducts(); // productos con cantidad > 0
-    _allProductsFuture = DatabaseHelper.instance.getAllProducts(); // todos los productos
+    _loadProducts(); // productos con cantidad > 0
+    _allProductsFuture = DatabaseHelper.instance.getAllProducts(); 
     _searchController.addListener(() {
       _filterProducts(_searchController.text);
     });

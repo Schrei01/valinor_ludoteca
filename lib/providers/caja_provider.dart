@@ -46,5 +46,4 @@ class CajaMayorProvider with ChangeNotifier {
 
     notifyListeners();
   }
-
 }
