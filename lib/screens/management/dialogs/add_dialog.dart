@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/caja_provider.dart';
+import 'package:valinor_ludoteca_desktop/screens/management/dialogs/thousands_formatter.dart';
 
 void showAddDialog(BuildContext context) {
     final TextEditingController montoController = TextEditingController();
@@ -12,10 +14,13 @@ void showAddDialog(BuildContext context) {
           title: const Text("Agregar a Caja Mayor"),
           content: TextField(
             controller: montoController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: TextInputType.number,
+            inputFormatters: [ThousandsFormatter()],
+            textAlign: TextAlign.right,
             decoration: const InputDecoration(
               labelText: "Monto a agregar",
               border: OutlineInputBorder(),
+              prefixText: "\$ ",
             ),
           ),
           actions: [
@@ -25,7 +30,9 @@ void showAddDialog(BuildContext context) {
             ),
             ElevatedButton(
               onPressed: () {
-                final monto = double.tryParse(montoController.text.trim()) ?? 0;
+                final rawText = montoController.text.replaceAll('.', '');
+                final monto = double.tryParse(rawText) ?? 0;
+                final formatter = NumberFormat("#,##0", "es_CO");
 
                 if (monto <= 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -45,7 +52,7 @@ void showAddDialog(BuildContext context) {
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text("Se agregaron \$${monto.toStringAsFixed(2)} a la Caja Mayor"),
+                    content: Text("Se agregaron \$${formatter.format(monto)} a la Caja Mayor"),
                   ),
                 );
               },

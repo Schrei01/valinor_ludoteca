@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/movements_provider.dart';
 
@@ -22,6 +23,7 @@ class _HistoricPanelWidgetState extends State<HistoricPanelWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final currency = NumberFormat("#,##0", "es_CO");
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -92,7 +94,7 @@ class _HistoricPanelWidgetState extends State<HistoricPanelWidget> {
                         color: isIngreso ? Colors.green : Colors.red,
                       ),
                       title: Text(
-                        "\$${monto.toString()}",
+                        "\$${currency.format(monto)}",
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text("$cuenta • $motivo\n$fecha"),

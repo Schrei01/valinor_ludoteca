@@ -5,6 +5,7 @@ import 'package:valinor_ludoteca_desktop/providers/cash_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/deudas_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/movements_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/nequi_provider.dart';
+import 'package:valinor_ludoteca_desktop/screens/management/dialogs/thousands_formatter.dart';
 
 Future<void> showExpenseDialog(BuildContext context) async {
   final TextEditingController montoController = TextEditingController();
@@ -47,7 +48,12 @@ Future<void> showExpenseDialog(BuildContext context) async {
             TextField(
               controller: montoController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Monto"),
+              inputFormatters: [ThousandsFormatter()],
+              textAlign: TextAlign.right,
+              decoration: const InputDecoration(
+                labelText: "Monto",
+                prefixText: "\$ ",
+              ),
             ),
             const SizedBox(height: 10),
 
@@ -71,7 +77,8 @@ Future<void> showExpenseDialog(BuildContext context) async {
           ),
           ElevatedButton(
             onPressed: () async {
-            final monto = double.tryParse(montoController.text) ?? 0;
+            final rawText = montoController.text.replaceAll('.', '');
+            final monto = double.tryParse(rawText) ?? 0;
             
             if (cuentaSeleccionada == null || monto <= 0 || motivoSeleccionado == null) {
               ScaffoldMessenger.of(context).showSnackBar(

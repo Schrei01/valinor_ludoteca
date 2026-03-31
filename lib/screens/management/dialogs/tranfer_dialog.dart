@@ -4,6 +4,7 @@ import 'package:valinor_ludoteca_desktop/providers/caja_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/cash_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/deudas_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/nequi_provider.dart';
+import 'package:valinor_ludoteca_desktop/screens/management/dialogs/thousands_formatter.dart';
 
 void showTransferDialog(BuildContext context) {
     final TextEditingController amountController = TextEditingController();
@@ -44,8 +45,12 @@ void showTransferDialog(BuildContext context) {
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
+                inputFormatters: [ThousandsFormatter()],
+                textAlign: TextAlign.right,
                 decoration: const InputDecoration(
                   labelText: 'Monto',
+                  border: OutlineInputBorder(),
+                  prefixText: "\$ ",
                   prefixIcon: Icon(Icons.monetization_on),
                 ),
               ),
@@ -58,7 +63,8 @@ void showTransferDialog(BuildContext context) {
             ),
             ElevatedButton(
               onPressed: () {
-                final amount = double.tryParse(amountController.text) ?? 0;
+                final rawText = amountController.text.replaceAll('.', '');
+                final amount = double.tryParse(rawText) ?? 0;
                 if (sourceAccount == null ||
                     destinationAccount == null ||
                     sourceAccount == destinationAccount ||

@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:valinor_ludoteca_desktop/screens/reports/controller/report_controller.dart';
 
 class ReportPieChart extends StatelessWidget {
@@ -111,6 +112,8 @@ List<PieChartSectionData> _buildSections(Map<String, double> data) {
     Colors.green,
   ];
 
+  final currency = NumberFormat("#,##0", "es_CO");
+
   int index = 0;
 
   return data.entries.map((entry) {
@@ -120,7 +123,7 @@ List<PieChartSectionData> _buildSections(Map<String, double> data) {
       color: colors[index],
       value: value,
       title: value > 0
-          ? "\$${value.toStringAsFixed(0)}"
+          ? "\$${currency.format(value)}"
           : '',
       radius: 60,
       titleStyle: const TextStyle(
@@ -143,6 +146,8 @@ Widget _buildLegend(Map<String, double> data) {
     Colors.red,
     Colors.green,
   ];
+
+  final currency = NumberFormat("#,##0", "es_CO");
 
   int index = 0;
 
@@ -170,7 +175,7 @@ Widget _buildLegend(Map<String, double> data) {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                "${entry.key}\n\$${value.toStringAsFixed(0)} • ${percentage.toStringAsFixed(1)}%",
+                "${entry.key}\n\$${currency.format(value)} • ${percentage.toStringAsFixed(1)}%",
                 style: const TextStyle(fontSize: 12),
               ),
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:valinor_ludoteca_desktop/providers/caja_provider.dart';
@@ -95,6 +96,8 @@ class GraphicsPanelWidget extends StatelessWidget {
       Colors.red,
     ];
 
+    final currency = NumberFormat("#,##0", "es_CO");
+
     int index = 0;
 
     return data.entries.map((entry) {
@@ -102,7 +105,7 @@ class GraphicsPanelWidget extends StatelessWidget {
         color: colors[index % colors.length],
         value: entry.value,
         title: entry.value > 0
-            ? "\$${entry.value.toStringAsFixed(0)}"
+            ? "\$${currency.format(entry.value)}"
             : '',
         radius: 60,
         titleStyle: const TextStyle(
@@ -126,6 +129,8 @@ class GraphicsPanelWidget extends StatelessWidget {
       Colors.blue,
       Colors.red,
     ];
+
+    final currency = NumberFormat("#,##0", "es_CO");
 
     int index = 0;
 
@@ -168,7 +173,7 @@ class GraphicsPanelWidget extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      "\$${value.toStringAsFixed(0)} • ${percentage.toStringAsFixed(1)}%",
+                      "\$${currency.format(value)} • ${percentage.toStringAsFixed(1)}%",
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.grey.shade600,

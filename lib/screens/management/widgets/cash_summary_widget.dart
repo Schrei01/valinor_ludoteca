@@ -16,44 +16,66 @@ class CashSummary extends StatelessWidget {
     final cajaMayor = context.watch<CajaMayorProvider>().totalEnCajaMayor;
     final deudas = context.watch<DeudasProvider>().totalEnDeudas;
 
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 12, // espacio horizontal
-      runSpacing: 12, // espacio vertical
-      children: [
-        SizedBox(
-          width: 250, // 👈 controlas ancho
-          child: CashCardWidget(
-            title: "Caja",
-            value: caja,
-            color: Colors.green,
-          ),
-        ),
-        SizedBox(
-          width: 250,
-          child: CashCardWidget(
-            title: "Nequi",
-            value: nequi,
-            color: Colors.purple,
-          ),
-        ),
-        SizedBox(
-          width: 250,
-          child: CashCardWidget(
-            title: "Caja Mayor",
-            value: cajaMayor,
-            color: Colors.blue,
-          ),
-        ),
-        SizedBox(
-          width: 250,
-          child: CashCardWidget(
-            title: "Deudas",
-            value: deudas,
-            color: Colors.red,
-          ),
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final itemWidth = (constraints.maxWidth - (12 * 4)) / 5;
+      
+          return Row(
+            children: [
+              SizedBox(
+                width: itemWidth,
+                child: CashCardWidget(
+                  title: "Caja",
+                  value: caja,
+                  color: Colors.green,
+                ),
+              ),
+              SizedBox(width: 12),
+      
+              SizedBox(
+                width: itemWidth,
+                child: CashCardWidget(
+                  title: "Nequi",
+                  value: nequi,
+                  color: Colors.purple,
+                ),
+              ),
+              SizedBox(width: 12),
+      
+              SizedBox(
+                width: itemWidth,
+                child: CashCardWidget(
+                  title: "Caja Mayor",
+                  value: cajaMayor,
+                  color: Colors.blue,
+                ),
+              ),
+              SizedBox(width: 12),
+      
+              SizedBox(
+                width: itemWidth,
+                child: CashCardWidget(
+                  title: "Deudas",
+                  value: deudas,
+                  color: Colors.red,
+                ),
+              ),
+              SizedBox(width: 12),
+      
+              SizedBox(
+                width: itemWidth,
+                child: CashCardWidget(
+                  title: "Total",
+                  value: caja + nequi + cajaMayor,
+                  color: Colors.blue,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
