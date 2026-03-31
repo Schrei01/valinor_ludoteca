@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:valinor_ludoteca_desktop/db/services/product_service.dart';
 import 'package:valinor_ludoteca_desktop/models/products.dart';
 import 'package:valinor_ludoteca_desktop/widgets/product_form_widget.dart';
 import 'package:valinor_ludoteca_desktop/widgets/product_list_widget.dart';
-import '../db/database_helper.dart';
 
 class InventarioScreen extends StatefulWidget {
   const InventarioScreen({super.key});
@@ -19,30 +19,50 @@ class _InventarioScreenState extends State<InventarioScreen> {
   final _priceController = TextEditingController();
   final _purchasePriceController = TextEditingController();
   final _loteController = TextEditingController();
+  List<Product> _filteredProducts = [];
+
+  // Lista completa de productos (para búsqueda)
+  late List<Product> _allProducts;
+
+  // Controlador de búsqueda
   final TextEditingController _searchController = TextEditingController();
 
-  List<Product> _allProducts = [];
-  List<Product> _filteredProducts = [];
+  // Service
+  final ProductService _productService = ProductService();
 
   @override
   void initState() {
     super.initState();
-    _loadProducts(); // productos con cantidad > 0
-    _allProductsFuture = DatabaseHelper.instance.getAllProducts(); 
+
+    // Cargar productos disponibles (> 0)
+    _loadProducts();
+
+    // Cargar todos los productos (para búsqueda)
+    _allProductsFuture = ProductService().getAll();
+
+    // Listener de búsqueda
     _searchController.addListener(() {
       _filterProducts(_searchController.text);
     });
   }
 
-  Future<List<Product>> _loadProducts() async {
-    final products = await DatabaseHelper.instance.getProducts(); // 👈 solo los > 0
+   /// 🔹 Cargar productos disponibles y todos los productos
+  Future<void> _loadProducts() async {
+    try {
+      // Productos disponibles (>0)
+      final available = await _productService.getAvailable();
 
-    setState(() {
-      _allProducts = products;
-      _filteredProducts = products;
-    });
+      // Todos los productos (para búsqueda)
+      final all = await _productService.getAll();
 
-    return products;
+      setState(() {
+        _filteredProducts = available;
+        _allProducts = all;
+      });
+    } catch (e) {
+      // Manejo de errores
+      debugPrint("Error cargando productos: $e");
+    }
   }
 
   void _filterProducts(String query) {
@@ -92,36 +112,39 @@ class _InventarioScreenState extends State<InventarioScreen> {
   }
 
   Future<void> _addProduct(Product newProduct) async {
-  // 🔹 Validar cantidad negativa antes de llamar a la DB
-  if (newProduct.quantity < 0) {
-    final allowed = await _askPassword(context);
-    if (!allowed) {
+    // 🔹 Validar cantidad negativa antes de llamar al Service
+    if (newProduct.quantity < 0) {
+      final allowed = await _askPassword(context);
+      if (!allowed) {
+        // ignore: use_build_context_synchronously
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cantidad negativa no permitida')),
+        );
+        return; // no guardamos nada
+      }
+    }
+
+    try {
+      // Usamos el Service en lugar de DatabaseHelper
+      final productService = ProductService();
+      await productService.insertOrUpdate(newProduct);
+
+      // Limpiar campos de entrada
+      _nameController.clear();
+      _quantityController.clear();
+      _priceController.clear();
+      _purchasePriceController.clear();
+      _loteController.clear();
+
+      // Recargar productos (disponibles)
+      await _loadProducts();
+    } catch (e) {
       // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cantidad negativa no permitida')),
+        SnackBar(content: Text('Error: $e')),
       );
-      return; // no guardamos nada
     }
   }
-
-  try {
-    await DatabaseHelper.instance.insertOrUpdateProduct(newProduct);
-
-    _nameController.clear();
-    _quantityController.clear();
-    _priceController.clear();
-    _purchasePriceController.clear();
-    _loteController.clear();
-
-    await _loadProducts();
-  } catch (e) {
-    // ignore: use_build_context_synchronously
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: $e')),
-    );
-  }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +213,8 @@ class _InventarioScreenState extends State<InventarioScreen> {
                       // 📋 LISTA DE PRODUCTOS FILTRADOS
                       Expanded(
                         child: ProductList(
-                          products: _filteredProducts, // 👈 ahora usa la lista filtrada
+                          products: _filteredProducts, 
+                          productService: _productService,
                           onDeleteConfirmed: _loadProducts,
                         ),
                       ),

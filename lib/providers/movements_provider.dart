@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:valinor_ludoteca_desktop/db/database_helper.dart';
+import 'package:valinor_ludoteca_desktop/db/services/finance_service.dart';
 
 class MovementsProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _movimientos = [];
@@ -7,8 +7,9 @@ class MovementsProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get movimientos => _movimientos;
 
   Future<void> cargarMovimientos() async {
+    final financeService = FinanceService();
     _movimientos = List<Map<String, dynamic>>.from(
-      await DatabaseHelper.instance.getLastMovimientos(),
+      await financeService.getMovimientos(),
     );
     notifyListeners();
   }
@@ -19,9 +20,9 @@ class MovementsProvider extends ChangeNotifier {
     required double monto,
     required String motivo,
   }) async {
+    final financeService = FinanceService();
     notifyListeners();
-    await DatabaseHelper.instance.insertMovimiento(
-      tipo: tipo,
+    await financeService.registrarIngreso(
       cuenta: cuenta,
       monto: monto,
       motivo: motivo,

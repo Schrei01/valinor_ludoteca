@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:valinor_ludoteca_desktop/db/services/product_service.dart';
+import 'package:valinor_ludoteca_desktop/db/services/sales_service.dart';
 import 'package:valinor_ludoteca_desktop/models/products.dart';
 import 'package:valinor_ludoteca_desktop/models/saleline.dart';
 import 'package:valinor_ludoteca_desktop/providers/accounts_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/cash_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/nequi_provider.dart';
 import 'package:valinor_ludoteca_desktop/widgets/sale_line_widget.dart';
-import '../db/database_helper.dart';
 import 'package:uuid/uuid.dart';
 
 class VentasScreen extends StatefulWidget {
@@ -22,6 +23,9 @@ class _VentasScreenState extends State<VentasScreen> {
 
   bool _loading = true;
   final List<SaleLine> _saleLines = [];
+  final ProductService _productService = ProductService();
+  late List<Product> _allProducts;
+  List<Product> _filteredProducts = [];
 
 
   @override
@@ -33,17 +37,35 @@ class _VentasScreenState extends State<VentasScreen> {
 
 
   Future<void> _loadProducts() async {
-    final products = await DatabaseHelper.instance.getAvailableProducts();
     setState(() {
-      _products = products;
-      _loading = false;
-      
+      _loading = true;
     });
+
+    try {
+      // Productos disponibles (>0)
+      final available = await _productService.getAvailable();
+
+      // Todos los productos (para búsqueda)
+      final all = await _productService.getAll();
+
+      setState(() {
+        _products = available;   // Lista que se muestra
+        _allProducts = all;      // Lista completa para búsqueda
+        _filteredProducts = available; // Inicialmente filtrada igual a disponible
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint("Error cargando productos: $e");
+      setState(() {
+        _loading = false;
+      });
+    }
   }
 
   Future<Map<String, dynamic>> _registerSaleForAccount(Account account) async {
     bool hasError = false;
 
+    // 🔹 Validaciones previas
     for (var line in account.saleLines) {
       final quantity = int.tryParse(line.quantityController.text.trim());
       final product = line.product;
@@ -75,7 +97,7 @@ class _VentasScreenState extends State<VentasScreen> {
 
       if (paymentMethod == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Selecciona un medio de pago en todas las lineas')),
+          const SnackBar(content: Text('Selecciona un medio de pago en todas las lineas')),
         );
         hasError = true;
         break;
@@ -84,40 +106,38 @@ class _VentasScreenState extends State<VentasScreen> {
 
     if (hasError) return {'hasError': true, 'totals': []};
 
-    final now = DateTime.now().toIso8601String();
-
-    // Guardar totales antes de limpiar
+    // 🔹 Guardar totales antes de limpiar
     List<double> lineTotals = [];
+    final salesService = SalesService();
 
     for (var line in account.saleLines) {
       final quantity = int.parse(line.quantityController.text.trim());
       final product = line.product!;
-      final paymentMethod = line.paymentMethod!; // 👈 importante
+      final paymentMethod = line.paymentMethod!;
       final totalLine = quantity * product.price;
 
       lineTotals.add(totalLine);
 
-      await DatabaseHelper.instance.insertSale(
-        product.id!,
-        quantity,
-        paymentMethod,
-        now,
+      // 🔹 Usamos el service, que internamente hace transacción y descuento de stock
+      await salesService.registerSale(
+        productId: product.id!,
+        quantity: quantity,
+        paymentMethod: paymentMethod,
       );
     }
 
-    // ignore: use_build_context_synchronously
+    // 🔹 Feedback a usuario y limpiar líneas
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Venta registrada correctamente')),
+      const SnackBar(content: Text('Venta registrada correctamente')),
     );
 
-    // Limpiar la cuenta después
     for (var line in account.saleLines) {
       line.quantityController.clear();
       line.product = null;
     }
     account.total = 0;
-    setState(() {});
 
+    // 🔹 Recargar productos disponibles
     await _loadProducts();
 
     return {'hasError': false, 'totals': lineTotals};

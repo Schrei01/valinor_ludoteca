@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../db/database_helper.dart';
+import 'package:valinor_ludoteca_desktop/db/services/finance_service.dart';
+import 'package:valinor_ludoteca_desktop/db/services/sales_service.dart';
 
 class ReportsController extends ChangeNotifier {
+  final SalesService _salesService = SalesService();
+  final FinanceService _financeService = FinanceService();
+
   DateTime? startDate;
   DateTime? endDate;
 
@@ -18,26 +22,28 @@ class ReportsController extends ChangeNotifier {
 
   bool loading = false;
 
+  /// 🔹 Carga todo el reporte
   Future<void> loadReport() async {
     if (startDate == null || endDate == null) return;
 
     loading = true;
     notifyListeners();
 
-    final db = DatabaseHelper.instance;
-
-    final data = await db.getSalesReport(startDate!, endDate!);
+    // 🔹 Traer datos de ventas
+    final data = await _salesService.getReport(startDate!, endDate!);
 
     reportData = List<Map<String, dynamic>>.from(data['report']);
     totalGeneral = data['totalGeneral'];
     totalGanancias = data['totalGanancias'];
 
-    // 🟡 Caja y Nequi inicial (histórico)
-    cajaInicio = await db.getCajaBefore(startDate!);
-    nequiInicio = await db.getNequiBefore(startDate!);
-    egresos = await db.getEgresos(startDate!, endDate!);
+    // 🔹 Caja y Nequi inicial (histórico)
+    cajaInicio = await _financeService.getCajaBefore(startDate!);
+    nequiInicio = await _financeService.getNequiBefore(startDate!);
 
-    // 🔥 INGRESOS POR MÉTODO DE PAGO (AQUÍ ESTÁ LA CLAVE)
+    // 🔹 Egresos
+    egresos = await _financeService.getEgresos(startDate!, endDate!);
+
+    // 🔹 INGRESOS POR MÉTODO DE PAGO
     double efectivo = 0;
     double nequi = 0;
 
@@ -64,6 +70,7 @@ class ReportsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 🔹 Setters con validación de fechas
   void setStartDate(DateTime date) {
     startDate = date;
     if (endDate != null && endDate!.isBefore(date)) {

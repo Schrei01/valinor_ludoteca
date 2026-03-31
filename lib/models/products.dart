@@ -31,7 +31,6 @@ class Product {
     return map;
   }
 
-
   factory Product.fromMap(Map<String, dynamic> map) {
     return Product(
       id: map['id'] as int?,
@@ -43,4 +42,22 @@ class Product {
     );
   }
 
+  // Agregar copyWith
+  Product copyWith({
+    int? id,
+    String? name,
+    int? quantity,
+    double? price,
+    double? purchasePrice,
+    String? lote,
+  }) {
+    return Product(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      quantity: quantity ?? this.quantity,
+      price: price ?? this.price,
+      purchasePrice: purchasePrice ?? this.purchasePrice,
+      lote: lote ?? this.lote,
+    );
+  }
 }
