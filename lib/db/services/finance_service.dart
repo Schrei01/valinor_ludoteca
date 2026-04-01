@@ -29,8 +29,23 @@ class FinanceService {
     );
   }
 
+  Future<void> registerTransfer({
+    required String cuentaOrigen,
+    required String cuentaDestino,
+    required double monto,
+    required String motivo,
+  }) async {
+    await _dao.insertTransfer(
+      tipo: 'transferencia',
+      cuentaOrigen: cuentaOrigen,
+      cuentaDestino: cuentaDestino,
+      monto: monto,
+      motivo: motivo,
+    );
+  }
+
   Future<List<Map<String, dynamic>>> getMovimientos() {
-    return _dao.getLastMovimientos();
+    return _dao.getLastMovimientosCombinados();
   }
 
   Future<Map<String, double>> getResumen() {

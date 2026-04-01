@@ -31,7 +31,7 @@ class ActionPanelWidget extends StatelessWidget {
           const SizedBox(width: 12),
           _buildActionButton(
             context,
-            label: "Agregar",
+            label: "Agregar a Caja Mayor",
             icon: Icons.add,
             color: Colors.green,
             onPressed: () => showAddDialog(context),

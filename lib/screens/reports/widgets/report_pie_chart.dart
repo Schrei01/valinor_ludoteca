@@ -174,10 +174,26 @@ Widget _buildLegend(Map<String, double> data) {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                "${entry.key}\n\$${currency.format(value)} • ${percentage.toStringAsFixed(1)}%",
-                style: const TextStyle(fontSize: 12),
-              ),
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: "${entry.key}\n",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    TextSpan(
+                      text: "\$${currency.format(value)} • ${percentage.toStringAsFixed(1)}%",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              )
             ),
           ],
         ),

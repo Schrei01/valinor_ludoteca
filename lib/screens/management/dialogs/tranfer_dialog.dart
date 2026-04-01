@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/caja_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/cash_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/deudas_provider.dart';
+import 'package:valinor_ludoteca_desktop/providers/movements_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/nequi_provider.dart';
 import 'package:valinor_ludoteca_desktop/screens/management/dialogs/thousands_formatter.dart';
 
@@ -62,24 +63,41 @@ void showTransferDialog(BuildContext context) {
               child: const Text("Cancelar"),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final rawText = amountController.text.replaceAll('.', '');
                 final amount = double.tryParse(rawText) ?? 0;
+
                 if (sourceAccount == null ||
                     destinationAccount == null ||
                     sourceAccount == destinationAccount ||
                     amount <= 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text("Verifica los datos ingresados")),
+                    const SnackBar(content: Text("Verifica los datos ingresados")),
                   );
                   return;
                 }
 
-                _transfer(context, sourceAccount!, destinationAccount!, amount);
-                Navigator.pop(context);
+                try {
+                   _transfer(context, sourceAccount!, destinationAccount!, amount);
+
+                  final movementsProvider = context.read<MovementsProvider>();
+                  await movementsProvider.agregarMovimiento(
+                    tipo: "transferencia",
+                    cuenta: sourceAccount!,
+                    monto: amount,
+                    cuentaDestino: destinationAccount!,
+                    motivo: "Transferencia entre cuentas",
+                  );
+
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Error al registrar la transferencia: $e")),
+                  );
+                }
               },
-              child: const Text("Aceptar"),
+              child: const Text("Transferir"),
             ),
           ],
         );

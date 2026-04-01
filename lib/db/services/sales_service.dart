@@ -2,14 +2,13 @@ import 'package:valinor_ludoteca_desktop/db/daos/sales_dao.dart';
 import 'package:valinor_ludoteca_desktop/db/database_helper.dart';
 
 class SalesService {
-  final dbHelper = DatabaseHelper.instance;
 
   Future<void> registerSale({
     required int productId,
     required int quantity,
     required String paymentMethod,
   }) async {
-    final db = await dbHelper.database;
+    final db = await DatabaseHelper.instance.database; // 👈 corregido
 
     await db.transaction((txn) async {
       await SalesDao.insert(
@@ -25,6 +24,6 @@ class SalesService {
   }
 
   Future<Map<String, dynamic>> getReport(DateTime start, DateTime end) async {
-    return await dbHelper.getSalesReport(start, end);
+    return await SalesDao.getSalesReport(start, end);
   }
 }

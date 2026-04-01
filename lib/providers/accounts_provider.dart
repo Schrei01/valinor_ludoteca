@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:valinor_ludoteca_desktop/models/saleline.dart';
-import 'package:valinor_ludoteca_desktop/screens/ventas_screen.dart';
+import 'package:valinor_ludoteca_desktop/screens/sales/models/account.dart';
 
 
 class AccountsProvider extends ChangeNotifier {

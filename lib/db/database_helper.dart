@@ -20,7 +20,7 @@ class DatabaseHelper {
     _database = await factory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 13,
+        version: 14,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       ),
@@ -40,6 +40,7 @@ class DatabaseHelper {
     await _createCajaMayor(db);
     await _createDeudas(db);
     await _createMovimientos(db);
+    await _createTransferMovements(db);
   }
 
   // ========================
@@ -91,6 +92,10 @@ class DatabaseHelper {
 
     if (oldVersion < 13) {
       await _createMovimientos(db);
+    }
+
+    if (oldVersion < 14) {
+      await _createTransferMovements(db);
     }
   }
 
@@ -197,55 +202,17 @@ class DatabaseHelper {
     ''');
   }
 
-  Future<Map<String, dynamic>> getSalesReport(DateTime start, DateTime end) async {
-    final db = await database;
-
-    final reportData = await db.rawQuery('''
-      SELECT 
-        p.name, 
-        SUM(s.quantity) AS total_quantity,
-        SUM(s.quantity * p.price) AS total_sales,
-        SUM(s.quantity * p.purchasePrice) AS total_cost
-      FROM sales s
-      JOIN products p ON s.productId = p.id
-      WHERE s.date BETWEEN ? AND ?
-      GROUP BY p.name
-    ''', [start.toIso8601String(), end.toIso8601String()]);
-
-    final totalGeneralQuery = await db.rawQuery('''
-      SELECT 
-        SUM(s.quantity * p.price) AS totalGeneral,
-        SUM(s.quantity * p.purchasePrice) AS totalCost
-      FROM sales s
-      JOIN products p ON s.productId = p.id
-      WHERE s.date BETWEEN ? AND ?
-    ''', [start.toIso8601String(), end.toIso8601String()]);
-
-    final paymentReport = await db.rawQuery('''
-      SELECT 
-        s.paymentMethod,
-        SUM(s.quantity * p.price) AS total
-      FROM sales s
-      JOIN products p ON s.productId = p.id
-      WHERE s.date BETWEEN ? AND ?
-      GROUP BY s.paymentMethod
-    ''', [start.toIso8601String(), end.toIso8601String()]);
-
-    double totalGeneral = 0;
-    double totalCost = 0;
-
-    if (totalGeneralQuery.isNotEmpty) {
-      totalGeneral = (totalGeneralQuery.first['totalGeneral'] as num?)?.toDouble() ?? 0;
-      totalCost = (totalGeneralQuery.first['totalCost'] as num?)?.toDouble() ?? 0;
-    }
-
-    final totalGanancias = totalGeneral - totalCost;
-
-    return {
-      'report': reportData,
-      'totalGeneral': totalGeneral,
-      'totalGanancias': totalGanancias,
-      'paymentReport': paymentReport,
-    };
-  }
+  Future<void> _createTransferMovements(Database db) async {
+  await db.execute('''
+    CREATE TABLE transfermovements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tipo TEXT,          -- ejemplo: transferencia
+      cuenta_origen TEXT, -- cuenta de la que sale el dinero
+      cuenta_destino TEXT,-- cuenta que recibe el dinero
+      monto REAL,
+      motivo TEXT,
+      fecha TEXT
+    )
+  ''');
+}
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/caja_provider.dart';
+import 'package:valinor_ludoteca_desktop/providers/movements_provider.dart';
 import 'package:valinor_ludoteca_desktop/screens/management/dialogs/thousands_formatter.dart';
 
 void showAddDialog(BuildContext context) {
@@ -29,7 +30,7 @@ void showAddDialog(BuildContext context) {
               child: const Text("Cancelar"),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async{
                 final rawText = montoController.text.replaceAll('.', '');
                 final monto = double.tryParse(rawText) ?? 0;
                 final formatter = NumberFormat("#,##0", "es_CO");
@@ -44,10 +45,20 @@ void showAddDialog(BuildContext context) {
                 }
 
                 final cajaMayorProvider = context.read<CajaMayorProvider>();
-                cajaMayorProvider.setTotalEnCajaMayor(
-                  cajaMayorProvider.totalEnCajaMayor + monto, // 👈 suma el valor
+                final movementsProvider = context.read<MovementsProvider>();
+
+                await movementsProvider.agregarMovimiento(
+                  tipo: "ingreso",
+                  cuenta: "Caja mayor",
+                  monto: monto,
+                  motivo: "Agregado a Caja Mayor",
                 );
 
+                cajaMayorProvider.setTotalEnCajaMayor(
+                  cajaMayorProvider.totalEnCajaMayor + monto,
+                );
+
+                if (!context.mounted) return;
                 Navigator.pop(context);
 
                 ScaffoldMessenger.of(context).showSnackBar(

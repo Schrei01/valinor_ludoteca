@@ -17,16 +17,41 @@ class MovementsProvider extends ChangeNotifier {
   Future<void> agregarMovimiento({
     required String tipo,
     required String cuenta,
-    required double monto,
-    required String motivo,
+    double? monto,
+    String? motivo,
+    String? cuentaDestino, 
   }) async {
     final financeService = FinanceService();
     notifyListeners();
-    await financeService.registrarIngreso(
-      cuenta: cuenta,
-      monto: monto,
-      motivo: motivo,
-    );
+
+    final tipoLower = tipo.toLowerCase();
+
+    if (tipoLower == 'egreso') {
+      await financeService.registrarEgreso(
+        cuenta: cuenta,
+        monto: monto!,
+        motivo: motivo!,
+      );
+    } else if (tipoLower == 'ingreso') {
+      await financeService.registrarIngreso(
+        cuenta: cuenta,
+        monto: monto!,
+        motivo: motivo!,
+      );
+    } else if (tipoLower == 'transferencia') {
+      if (cuentaDestino == null) {
+        throw Exception('Para transferencias se requiere la cuenta destino');
+      }
+      await financeService.registerTransfer(
+        cuentaOrigen: cuenta,
+        cuentaDestino: cuentaDestino,
+        monto: monto!,
+        motivo: motivo!,
+      );
+    } else {
+      throw Exception('Tipo de movimiento desconocido: $tipo');
+    }
+
     await cargarMovimientos();
   }
 }

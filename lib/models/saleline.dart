@@ -3,15 +3,22 @@ import 'package:valinor_ludoteca_desktop/models/products.dart';
 
 class SaleLine {
   Product? product;
-  int quantity; // cantidad numérica
-  String? paymentMethod; // <-- Medio de pago (Efectivo / Nequi)
+  String? paymentMethod;
 
   final TextEditingController quantityController = TextEditingController();
 
   SaleLine({
     this.product,
-    this.quantity = 0,
     this.paymentMethod,
   });
+
+  int get quantity {
+    return int.tryParse(quantityController.text) ?? 0;
+  }
+
+  double get total {
+    final price = product?.price ?? 0;
+    return quantity * price;
+  }
 }
 

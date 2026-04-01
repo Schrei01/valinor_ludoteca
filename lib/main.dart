@@ -3,17 +3,32 @@ import 'package:provider/provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/deudas_provider.dart';
 import 'package:valinor_ludoteca_desktop/providers/movements_provider.dart';
 import 'package:valinor_ludoteca_desktop/screens/reports/controller/report_controller.dart';
+import 'package:window_manager/window_manager.dart';
 import 'providers/cash_provider.dart';
 import 'providers/nequi_provider.dart';
 import 'providers/caja_provider.dart';
 import 'providers/accounts_provider.dart';
 import 'screens/inventario_screen.dart';
-import 'screens/ventas_screen.dart';
+import 'screens/sales/ventas_screen.dart';
 import 'screens/reports/reports_screen.dart';
 import 'screens/management/management_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+   await windowManager.ensureInitialized();
+
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(1200, 800), // opcional
+    center: true,
+    title: "Valinor Sanctum",
+  );
+
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.maximize(); // 🔥 aquí lo haces maximizado
+    await windowManager.show();
+    await windowManager.focus();
+  });
 
   // Creamos el provider y cargamos valores desde BD
   final cashProvider = CashProvider();

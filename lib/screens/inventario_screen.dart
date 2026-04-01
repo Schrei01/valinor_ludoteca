@@ -69,7 +69,7 @@ class _InventarioScreenState extends State<InventarioScreen> {
     final filtered = _allProducts.where((product) {
       final nameLower = product.name.toLowerCase();
       final searchLower = query.toLowerCase();
-      return nameLower.contains(searchLower);
+      return nameLower.contains(searchLower) && product.quantity > 0;
     }).toList();
 
     setState(() => _filteredProducts = filtered);

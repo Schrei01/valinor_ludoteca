@@ -79,25 +79,37 @@ class _HistoricPanelWidgetState extends State<HistoricPanelWidget> {
 
                     final tipo = mov['tipo'] ?? '';
                     final cuenta = mov['cuenta'] ?? '';
+                    final cuentaDestino = mov['cuenta_destino'] ?? ''; // si es transferencia
                     final monto = mov['monto'] ?? 0;
                     final motivo = mov['motivo'] ?? '';
                     final fecha = mov['fecha'] ?? '';
 
-                    final isIngreso = tipo == 'ingreso';
+                    Icon leadingIcon;
+                    if (tipo == 'ingreso') {
+                      leadingIcon = const Icon(Icons.arrow_downward, color: Colors.green);
+                    } else if (tipo == 'egreso') {
+                      leadingIcon = const Icon(Icons.arrow_upward, color: Colors.red);
+                    } else if (tipo == 'transferencia') {
+                      leadingIcon = const Icon(Icons.compare_arrows, color: Colors.blue); // doble flecha
+                    } else {
+                      leadingIcon = const Icon(Icons.help_outline);
+                    }
+
+                    String subtitleText;
+                    if (tipo == 'transferencia') {
+                      subtitleText = "$cuenta → $cuentaDestino • $motivo\n$fecha";
+                    } else {
+                      subtitleText = "$cuenta • $motivo\n$fecha";
+                    }
 
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: Icon(
-                        isIngreso
-                            ? Icons.arrow_downward
-                            : Icons.arrow_upward,
-                        color: isIngreso ? Colors.green : Colors.red,
-                      ),
+                      leading: leadingIcon,
                       title: Text(
                         "\$${currency.format(monto)}",
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      subtitle: Text("$cuenta • $motivo\n$fecha"),
+                      subtitle: Text(subtitleText),
                       isThreeLine: true,
                     );
                   },

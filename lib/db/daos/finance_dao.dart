@@ -18,6 +18,25 @@ class FinanceDao {
     });
   }
 
+  Future<void> insertTransfer({
+    required String tipo,
+    required String cuentaOrigen,
+    required String cuentaDestino,
+    required double monto,
+    required String motivo,
+  }) async {
+    final db = await DatabaseHelper.instance.database;
+
+    await db.insert('transfermovements', {
+      'tipo': tipo,
+      'cuenta_origen': cuentaOrigen,
+      'cuenta_destino': cuentaDestino,
+      'monto': monto,
+      'motivo': motivo,
+      'fecha': DateTime.now().toIso8601String(),
+    });
+  }
+
   Future<double> getEgresos(DateTime start, DateTime end) async {
     final db = await DatabaseHelper.instance.database;
 
@@ -35,14 +54,20 @@ class FinanceDao {
     return 0;
   }
 
-  Future<List<Map<String, dynamic>>> getLastMovimientos() async {
+  Future<List<Map<String, dynamic>>> getLastMovimientosCombinados() async {
     final db = await DatabaseHelper.instance.database;
 
-    return await db.query(
-      'movimientos',
-      orderBy: 'fecha DESC',
-      limit: 10,
-    );
+    final result = await db.rawQuery('''
+      SELECT tipo, cuenta, monto, motivo, fecha, NULL AS cuenta_destino
+      FROM movimientos
+      UNION ALL
+      SELECT tipo, cuenta_origen AS cuenta, monto, motivo, fecha, cuenta_destino
+      FROM transfermovements
+      ORDER BY fecha DESC
+      LIMIT 10
+    ''');
+
+    return result;
   }
 
   Future<Map<String, double>> getFinancialSummary() async {

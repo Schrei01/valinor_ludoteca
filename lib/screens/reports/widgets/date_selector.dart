@@ -23,16 +23,21 @@ class DateSelector extends StatelessWidget {
 
     if (newDate == null) return;
 
-    if (!context.mounted) return; // ✅ protección
+    if (!context.mounted) return;
+
+    // 🔥 CAMBIO AQUÍ
+    final initialTime = isStart
+        ? TimeOfDay.fromDateTime(initialDate)
+        : TimeOfDay.now();
 
     final newTime = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(initialDate),
+      initialTime: initialTime,
     );
 
     if (newTime == null) return;
 
-    if (!context.mounted) return; // ✅ protección otra vez
+    if (!context.mounted) return;
 
     final fullDateTime = DateTime(
       newDate.year,
